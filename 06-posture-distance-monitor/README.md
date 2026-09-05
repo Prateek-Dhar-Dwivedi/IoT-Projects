@@ -1,44 +1,43 @@
-# Project 06: Ergonomic Posture & Screen Distance Monitor (IoT Web Dashboard) 🪑📱
+# Project 06: Ergonomic Posture & Screen Distance Monitor 🪑✨
 
-A smart desktop ergonomic health monitor built on the **ESP32**. It measures your eye-to-screen distance to prevent digital eye strain, tracks posture/slouching deviations, runs a 20-20-20 eye-rest timer, and **hosts a live real-time HTML5 dark-mode Web Dashboard accessible from your phone over Wi-Fi without needing a router**.
+A smart desktop ergonomic health monitor built on the **Arduino Uno** using the **exact same breadboard wiring as Projects 01–05**. It measures eye-to-screen distance to prevent digital eye strain, tracks torso slouching deviations from a baseline, runs a 20-20-20 eye-rest timer, and features touchless IR snoozing.
 
 ---
 
 ## 🌟 Key Features
-* **Built-in Wi-Fi Access Point:** The ESP32 broadcasts its own Wi-Fi network (`Smart-Posture-Monitor`). Connect your phone or laptop to view live graphs and stats at `http://192.168.4.1`.
+* **Zero Wire Changes:** Runs on the exact same Arduino Uno circuit as previous projects.
 * **Screen Distance Sensing (Sensor 1):** Warns if your face leans closer than 38 cm to the display.
-* **Slouching Detection (Sensor 2):** Calibrates to your upright sitting posture and alerts if your torso slumps away from the baseline.
-* **20-20-20 Eye Rest Timer:** Automatically tracks continuous desk work and signals a break.
-* **Touchless IR Snooze:** Wave your hand over the IR sensor to reset the break timer and recalibrate your posture without touching anything!
+* **Slouching Detection (Sensor 2):** Calibrates to your upright sitting baseline and alerts if your torso slumps forward or backward.
+* **20-20-20 Eye Rest Timer:** Automatically tracks continuous desk work and turns on the Yellow LED to signal an eye break.
+* **Touchless IR Snooze & Re-calibration:** Wave your hand over the IR sensor to reset the break timer and recalibrate your posture without touching any buttons!
+* **Live Ergonomic Dashboard:** Real-time feedback printed to the Serial Monitor every 1.5 seconds at **115200 baud**.
 
 ---
 
-## 🔌 Pin Connection Table (ESP32 Dev Module)
+## 🔌 Pin Connections (Identical to Projects 01–05)
 
-| Component | Component Pin | ESP32 Pin | Purpose |
+| Component | Pin | Arduino Uno Pin | Purpose in Project 06 |
 |---|---|---|---|
-| **Ultrasonic 1 (Screen/Face)** | VCC / GND | `VIN (5V)` / `GND` | Power |
-| | TRIG / ECHO | **GPIO 18** / **GPIO 19** | Screen distance trigger/echo |
-| **Ultrasonic 2 (Torso/Posture)**| VCC / GND | `VIN (5V)` / `GND` | Power |
-| | TRIG / ECHO | **GPIO 21** / **GPIO 22** | Torso distance trigger/echo |
-| **IR Proximity Sensor** | OUT | **GPIO 23** | Touchless snooze & calibrate |
-| **Piezo Buzzer** | (+) / (-) | **GPIO 25** / `GND` | Posture audio reminder |
-| **Green LED (Good Posture)** | (+) via 220Ω | **GPIO 26** / `GND` | Good posture indicator |
-| **Red LED (Warning)** | (+) via 220Ω | **GPIO 27** / `GND` | Slouching / Too close alert |
-| **Yellow LED (Break Alert)** | (+) via 220Ω | **GPIO 33** / `GND` | 20-20-20 Eye break indicator |
+| **Ultrasonic 1 (Screen/Face)** | TRIG | **Pin 9** | Screen distance trigger |
+| | ECHO | **Pin 8** | Screen distance return |
+| **Ultrasonic 2 (Torso/Posture)**| TRIG | **Pin 7** | Torso posture trigger |
+| | ECHO | **Pin 6** | Torso posture return |
+| **IR Sensor (Touchless Snooze)**| OUT | **Pin 2** | Snooze & recalibrate |
+| **Piezo Buzzer** | (+) | **Pin 10** | Gentle posture chirp |
+| **Green LED (Good Posture)** | (+) via 220Ω | **Pin 11** | Excellent posture |
+| **Red LED (Warning)** | (+) via 220Ω | **Pin 12** | Slouching / Too close |
+| **Yellow LED (Eye Break)** | (+) via 220Ω | **Pin 13** | 20-20-20 Break alert |
+| **Power Rails** | VCC / GND | `5V` / `GND` | Breadboard power rails |
 
 ---
 
-## 🚀 How to Build & Connect to Dashboard
+## 🎮 How to Test & Demo
 
-1. Wire your **ESP32** using the pin table above.
-2. In the Arduino IDE:
-   * Select **Tools > Board > ESP32 Dev Module**.
-   * Select your **COM Port** and click **Upload**.
-3. **Connect via Phone / PC:**
-   * Look for the Wi-Fi network: **`Smart-Posture-Monitor`**
-   * Password: **`12345678`**
-4. Open any browser (Chrome, Safari) and go to:  
-   👉 **`http://192.168.4.1`**
-5. Sit upright in your chair, click **"Calibrate Upright Sitting Posture"** on the dashboard (or wave over the IR sensor).
-6. Watch your screen distance, posture, and rest timer update live on your phone screen!
+1. Open `06-posture-distance-monitor.ino` in Arduino IDE.
+2. Select **Board: Arduino Uno** and your COM Port, then click **Upload**.
+3. Open **Serial Monitor** at **115200 baud**.
+4. **Auto-Calibration:** Sit upright at normal desk distance $\rightarrow$ the system chirps and locks in your posture baseline.
+5. **Good Posture:** 🟢 **Green LED** is ON (`EXCELLENT POSTURE`).
+6. **Test Screen Distance:** Lean closer to Sensor 1 (< 38 cm) $\rightarrow$ 🔴 **Red LED** turns ON and monitor warns `TOO CLOSE TO SCREEN! LEAN BACK`.
+7. **Test Slouching:** Slump your torso closer or further from Sensor 2 $\rightarrow$ 🔴 **Red LED** warns `SLOUCHING DETECTED! SIT UPRIGHT`.
+8. **Test Touchless Snooze:** Wave your hand over the **IR sensor** to dismiss break reminders and reset your posture baseline!
