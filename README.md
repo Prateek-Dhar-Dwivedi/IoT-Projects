@@ -17,7 +17,7 @@ A curated collection of embedded systems and IoT projects built using **Arduino 
 |---|---|---|---|---|---|
 | **01** | [`01-air-theremin-reflex-game`](./01-air-theremin-reflex-game/) | Contactless Air Theremin & Reflex Reaction Game | Arduino Uno | ~20 min | ✅ Complete |
 | **02** | [`02-traffic-speed-radar`](./02-traffic-speed-radar/) | High-Speed Traffic Radar & Speed Camera Trap | Arduino Uno | ~25 min | ✅ Complete |
-| **03** | `03-smart-parking-assistant` | Dual-Bay Smart Parking & Proximity Warner | Arduino Uno | ~25 min | ⏳ Queued |
+| **03** | [`03-smart-parking-assistant`](./03-smart-parking-assistant/) | Dual-Bay Smart Parking & Reverse Proximity Warner | Arduino Uno | ~25 min | ✅ Complete |
 | **04** | `04-posture-distance-monitor` | Ergonomic Posture & Screen Distance Monitor | ESP32 / NodeMCU | ~30 min | ⏳ Queued |
 | **05** | `05-air-gesture-desk-assistant` | Touchless Air-Gesture Smart Controller | Arduino / ESP32 | ~30 min | ⏳ Queued |
 | **06** | `06-assistive-walking-aid` | Smart Blind Walking Aid (Dual Hazard Detection) | Arduino Uno | ~30 min | ⏳ Queued |
