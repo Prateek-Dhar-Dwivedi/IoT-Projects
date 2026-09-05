@@ -23,5 +23,5 @@ A curated collection of embedded systems and IoT projects built using **Arduino 
 | **06** | [`06-posture-distance-monitor`](./06-posture-distance-monitor/) | Ergonomic Posture & Screen Distance Monitor | Arduino Uno | ~25 min | ✅ Complete |
 | **07** | [`07-adas-blindspot-alert`](./07-adas-blindspot-alert/) | Vehicle ADAS Dual Blind-Spot & Anti-Drowsiness | Arduino Uno | ~25 min | ✅ Complete |
 | **08** | [`08-industrial-qc-station`](./08-industrial-qc-station/) | Factory Conveyor QC Sizing Inspector | Arduino Uno | ~25 min | ✅ Complete |
-| **09** | `09-air-gesture-desk-assistant` | Touchless Air-Gesture Smart Controller | Arduino Uno | ~30 min | ⏳ Queued |
-| **10** | `10-espnow-perimeter-alarm` | Multi-Zone Wireless Security Perimeter | ESP32 + NodeMCUs | ~50 min | ⏳ Queued |
+| **09** | [`09-air-gesture-desk-assistant`](./09-air-gesture-desk-assistant/) | Touchless Air-Gesture Smart Controller | Arduino Uno | ~25 min | ✅ Complete |
+| **10** | `10-espnow-perimeter-alarm` | Multi-Zone Wireless Security Perimeter | ESP32 + NodeMCUs | ~45 min | ⏳ Queued |
