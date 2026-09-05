@@ -7,12 +7,12 @@ A contactless spatial gesture passcode security system. Unlocks only when a user
 ## 🌟 Key Features
 * **Contactless Air-PIN Keypad:** Uses spatial distance detection across Left and Right zones to input passcode digits touchlessly.
 * **Default Passcode:** `[ LEFT -> RIGHT -> LEFT ]` (or `1 - 2 - 1`).
-* **Visual Keypad Feedback:** Yellow LED (Pin 13) strobes and keypad tones confirm each registered digit.
+* **5-Second Input Cooldown Gap:** After registering a digit, the system flashes the Yellow LED and pauses for 5 seconds so you have plenty of time to reposition your hand without accidental multi-triggers.
 * **Automated Lockout Security:** 
   * Incorrect code triggers red flashing lights and police siren tones.
   * 3 consecutive failed attempts triggers an emergency **10-second security lockdown**.
 * **Sci-Fi Unlock Fanfare:** Green LED (Pin 11) illuminates solid with an electronic victory chime upon access authorization.
-* **Auto/Manual Re-lock:** Wave over the IR sensor while unlocked to instantly re-lock the vault.
+* **Manual Re-Lock:** Wave over the IR sensor while unlocked to immediately lock the vault again.
 
 ---
 
@@ -28,22 +28,19 @@ A contactless spatial gesture passcode security system. Unlocks only when a user
 | **Piezo Buzzer** | (+) | **Pin 10** | Keypad feedback & alarm |
 | **Green LED (Unlocked)** | (+) via 220Ω | **Pin 11** | Access Granted |
 | **Red LED (Locked / Alarm)** | (+) via 220Ω | **Pin 12** | Vault Locked / Intruder |
-| **Yellow LED (Key Strobe)** | (+) via 220Ω | **Pin 13** | Keypad input strobe |
+| **Yellow LED (Cooldown / Strobe)**| (+) via 220Ω | **Pin 13** | Keypad input & 5s cooldown |
 | **Power Rails** | VCC / GND | `5V` / `GND` | Breadboard power rails |
 
 ---
 
-## 🎮 How to Test & Demo
+## 🎮 How to Unlock the Vault (Step-by-Step)
 
-1. Open `04-air-pin-vault-lock.ino` in Arduino IDE.
-2. Select **Arduino Uno** and your COM Port, then click **Upload**.
-3. Open **Serial Monitor** at **115200 baud**.
-4. The **Red LED** is ON (Vault is Locked).
-5. **Enter Passcode:**
-   * Step 1: Hover hand over **LEFT sensor** (< 15 cm) $\rightarrow$ Yellow flashes + Beep (Digit 1 recorded).
-   * Step 2: Hover hand over **RIGHT sensor** (< 15 cm) $\rightarrow$ Yellow flashes + Beep (Digit 2 recorded).
-   * Step 3: Hover hand over **LEFT sensor** (< 15 cm) $\rightarrow$ Yellow flashes + Beep (Digit 3 recorded).
-   * Step 4: Wave hand over **IR sensor** to hit **ENTER**!
-6. **Result:** 🟢 Green LED lights up + Sci-Fi chime plays + 🔓 **ACCESS GRANTED** prints!
-7. **Test Intruder Alert:** Try entering the wrong code (e.g. Right, Right, Right) and hit Enter $\rightarrow$ 🚨 Siren alarm rings!
-8. **Lockdown Test:** Fail 3 times in a row $\rightarrow$ 10-second security alarm lockdown!
+1. Open **Serial Monitor** at **115200 baud**.
+2. Notice the **Red LED** is ON (Vault is Locked).
+3. **Enter Digit 1:** Hover hand 5–10 cm over **LEFT sensor** $\rightarrow$ Beep! (Digit 1 recorded).
+4. **Wait 5 Seconds:** The **Yellow LED** will blink slowly. Wait until it stops.
+5. **Enter Digit 2:** Hover hand 5–10 cm over **RIGHT sensor** $\rightarrow$ Beep! (Digit 2 recorded).
+6. **Wait 5 Seconds:** Yellow LED blinks for cooldown.
+7. **Enter Digit 3:** Hover hand 5–10 cm over **LEFT sensor** again $\rightarrow$ Beep! (Digit 3 recorded).
+8. **SUBMIT:** Wave your hand over the **IR sensor**.
+9. **Result:** 🟢 Green LED lights up + Sci-Fi chime plays + 🔓 **ACCESS GRANTED** prints!

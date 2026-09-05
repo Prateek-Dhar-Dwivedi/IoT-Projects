@@ -1,28 +1,18 @@
+#include <Arduino.h>
+
 /*
  * =====================================================================================
  * PROJECT 04: Sci-Fi "Air-PIN" Touchless Vault & Safe Lock
  * Hardware: Arduino Uno + 2x Ultrasonic (HC-SR04) + 1x IR Sensor + 1x Buzzer + 3x LEDs
  * =====================================================================================
  * 
- * ZERO RE-WIRING (Same circuit as Projects 01, 02 & 03!):
- * - Ultrasonic 1 (Keypad Sensor 1 / Left)  : TRIG = Pin 9, ECHO = Pin 8
- * - Ultrasonic 2 (Keypad Sensor 2 / Right) : TRIG = Pin 7, ECHO = Pin 6
- * - IR Sensor    (Submit / Enter Key)      : OUT  = Pin 2
- * - Piezo Buzzer (Keypad Tones & Siren)    : (+)  = Pin 10
- * - Green LED    (ACCESS GRANTED / Unlock) : (+)  = Pin 11
- * - Red LED      (LOCKED / Intruder Alarm) : (+)  = Pin 12
- * - Yellow LED   (Digit Input Strobe)      : (+)  = Pin 13
+ * PASSCODE: [ LEFT -> RIGHT -> LEFT ] (1 - 2 - 1)
  * 
- * 🔐 HOW TO UNLOCK:
- * Default Secret Passcode is: [ 1 - 2 - 1 ]
- * - Digit 1: Hover hand over LEFT sensor  (< 15cm) -> Yellow flashes + Key beep!
- * - Digit 2: Hover hand over RIGHT sensor (< 15cm) -> Yellow flashes + Key beep!
- * - Digit 3: Hover hand over LEFT sensor  (< 15cm) -> Yellow flashes + Key beep!
- * - SUBMIT : Hover hand over IR SENSOR to enter passcode!
- * 
- * * Correct Code: Green LED lights up + Sci-Fi victory fanfare! (Vault Unlocks)
- * * Wrong Code  : Red LED flashes furiously + Police intruder alarm siren!
- * * 3 Strikes   : 10-second security LOCKDOWN!
+ * ✨ FEATURE: 5-Second Cooldown Gap between digits!
+ * - After you hover over a sensor, it locks in your digit and beeps.
+ * - The system gives you a clear 5-SECOND GAP (with countdown in Serial Monitor)
+ *   so you have plenty of time to move your hand away and prepare the next digit!
+ * - Once you input all 3 digits, wave over the IR Sensor to SUBMIT.
  * =====================================================================================
  */
 
@@ -36,7 +26,7 @@ const int BUZZER_PIN = 10;
 
 const int LED_UNLOCKED_GREEN = 11; // Access Granted
 const int LED_LOCKED_RED     = 12; // Locked / Intruder Alarm
-const int LED_INPUT_YELLOW   = 13; // Keypad strobe
+const int LED_INPUT_YELLOW   = 13; // Keypad strobe / Cooldown indicator
 
 // --- PASSCODE CONFIGURATION ---
 // 1 = Left Sensor, 2 = Right Sensor
@@ -46,6 +36,11 @@ int digitsEntered = 0;
 int failedAttempts = 0;
 bool isVaultUnlocked = false;
 
+// Cooldown timer tracking
+unsigned long lastDigitTime = 0;
+const unsigned long DIGIT_COOLDOWN_MS = 5000; // 5-second gap
+
+// --- FUNCTION DECLARATIONS ---
 long getDistance(int trigPin, int echoPin);
 void recordDigit(int digit);
 void checkPasscode();
@@ -75,14 +70,16 @@ void setup() {
   lockVault();
 
   Serial.println(F("[Ready] Touchless Vault Armed & Locked."));
-  Serial.println(F("-> Secret Passcode: LEFT -> RIGHT -> LEFT (Then wave IR to SUBMIT)\n"));
+  Serial.println(F("-> Secret Passcode: LEFT -> RIGHT -> LEFT"));
+  Serial.println(F("-> 5-second gap between digits to position your hand."));
+  Serial.println(F("-> Wave hand over IR Sensor to SUBMIT code.\n"));
 }
 
 void loop() {
-  // If vault is currently unlocked, wait for auto-lock or manual lock via IR
+  // If vault is currently unlocked, allow manual re-lock via IR
   if (isVaultUnlocked) {
     if (digitalRead(IR_ENTER) == LOW) {
-      Serial.println(F("[Vault] Manual lock engaged via IR Sensor."));
+      Serial.println(F("[Vault] Re-locked manually via IR Sensor."));
       lockVault();
       while (digitalRead(IR_ENTER) == LOW);
       delay(300);
@@ -90,18 +87,28 @@ void loop() {
     return;
   }
 
+  // Check if we are still inside the 5-second cooldown gap
+  if (millis() - lastDigitTime < DIGIT_COOLDOWN_MS) {
+    // Flash Yellow LED slowly during the 5s cooldown
+    digitalWrite(LED_INPUT_YELLOW, (millis() % 500 < 250) ? HIGH : LOW);
+    delay(20);
+    return; // Don't accept new sensor inputs during the 5s gap
+  } else {
+    digitalWrite(LED_INPUT_YELLOW, LOW);
+  }
+
   // 1. Check Sensor 1 (Digit 1 = Left Sensor < 15cm)
   long dist1 = getDistance(TRIG_1, ECHO_1);
   if (dist1 > 0 && dist1 <= 15) {
     recordDigit(1);
-    delay(500); // Debounce
+    return;
   }
 
   // 2. Check Sensor 2 (Digit 2 = Right Sensor < 15cm)
   long dist2 = getDistance(TRIG_2, ECHO_2);
   if (dist2 > 0 && dist2 <= 15) {
     recordDigit(2);
-    delay(500); // Debounce
+    return;
   }
 
   // 3. Check IR Sensor (ENTER / SUBMIT Key)
@@ -109,11 +116,11 @@ void loop() {
     if (digitsEntered > 0) {
       checkPasscode();
     } else {
-      Serial.println(F("[Keypad] No digits entered yet! Input code first."));
+      Serial.println(F("[Keypad] No digits entered yet! Hover over Left/Right sensors first."));
       tone(BUZZER_PIN, 400, 100);
-      delay(200);
+      delay(250);
     }
-    while (digitalRead(IR_ENTER) == LOW); // Wait for clear
+    while (digitalRead(IR_ENTER) == LOW);
     delay(300);
   }
 
@@ -128,27 +135,31 @@ void recordDigit(int digit) {
   if (digitsEntered < 3) {
     enteredPin[digitsEntered] = digit;
     digitsEntered++;
+    lastDigitTime = millis(); // Start 5-second cooldown
 
-    // Audio-visual keypress confirmation
+    // Confirmation beep & flash
     digitalWrite(LED_INPUT_YELLOW, HIGH);
-    tone(BUZZER_PIN, 1000 + (digit * 300), 80);
-    delay(100);
+    tone(BUZZER_PIN, 1000 + (digit * 300), 120);
+    delay(150);
     digitalWrite(LED_INPUT_YELLOW, LOW);
 
-    Serial.print(F(">>> Keypad Input: [Digit "));
+    Serial.print(F(">>> Keypad: Digit "));
     Serial.print(digitsEntered);
-    Serial.print(F(" recorded: "));
-    Serial.print(digit == 1 ? F("LEFT (1)") : F("RIGHT (2)"));
-    Serial.print(F("] -> Total Entered: "));
+    Serial.print(F(" accepted ["));
+    Serial.print(digit == 1 ? F("LEFT SENSOR") : F("RIGHT SENSOR"));
+    Serial.print(F("] -> ("));
     Serial.print(digitsEntered);
-    Serial.println(F("/3"));
+    Serial.println(F("/3 digits entered)"));
 
     if (digitsEntered == 3) {
-      Serial.println(F("💡 [Tip] 3 digits entered! Wave over IR Sensor to SUBMIT."));
+      Serial.println(F("💡 All 3 digits entered! Wave over IR SENSOR to SUBMIT code."));
+    } else {
+      Serial.println(F("⏳ Waiting 5 seconds before next digit can be entered..."));
     }
   } else {
-    Serial.println(F("⚠️ [Keypad Full] 3 digits already entered. Wave IR to Submit or wait."));
-    tone(BUZZER_PIN, 300, 150);
+    Serial.println(F("⚠️ Keypad full (3/3 digits). Wave over IR Sensor to SUBMIT!"));
+    tone(BUZZER_PIN, 350, 150);
+    delay(200);
   }
 }
 
@@ -174,7 +185,7 @@ void checkPasscode() {
   }
 
   if (match) {
-    // ACCESS GRANTED!
+    // ACCESS GRANTED
     Serial.println(F("🔓 ACCESS GRANTED! Passcode Verified."));
     Serial.println(F(">>> VAULT UNLOCKED! Welcome, Commander. <<<"));
     Serial.println(F("==================================================\n"));
@@ -185,7 +196,7 @@ void checkPasscode() {
     digitalWrite(LED_UNLOCKED_GREEN, HIGH);
     playUnlockMelody();
   } else {
-    // ACCESS DENIED!
+    // ACCESS DENIED
     failedAttempts++;
     Serial.print(F("🚨 ACCESS DENIED: INVALID PASSCODE! (Attempt "));
     Serial.print(failedAttempts);
@@ -201,7 +212,7 @@ void checkPasscode() {
     }
   }
 
-  // Reset entered buffer
+  // Reset digits buffer
   digitsEntered = 0;
   for (int i = 0; i < 3; i++) enteredPin[i] = 0;
 }
@@ -213,8 +224,8 @@ void lockVault() {
   digitalWrite(LED_UNLOCKED_GREEN, LOW);
   digitalWrite(LED_INPUT_YELLOW, LOW);
   digitalWrite(LED_LOCKED_RED, HIGH); // Red means Locked
-  tone(BUZZER_PIN, 400, 150); delay(180);
-  tone(BUZZER_PIN, 250, 250);
+  tone(BUZZER_PIN, 400, 120); delay(140);
+  tone(BUZZER_PIN, 250, 200);
 }
 
 void playUnlockMelody() {
@@ -263,7 +274,7 @@ long getDistance(int trigPin, int echoPin) {
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
 
-  long duration = pulseIn(echoPin, HIGH, 15000);
+  long duration = pulseIn(echoPin, HIGH, 15000); // 15ms timeout
   if (duration == 0) return 999;
   return duration * 0.0343 / 2;
 }
