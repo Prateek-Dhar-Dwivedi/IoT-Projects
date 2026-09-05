@@ -12,23 +12,27 @@ A distributed wireless security system connecting an **ESP32 Master Hub** to rem
 
 ---
 
-## 🔌 Hardware Setup
+## 🔌 Hardware Setup (Zero-Waste, Minimal Jumper Wires)
 
 ### Device A: Master Hub (ESP32)
+*Total wires needed: Only 2 jumper wires!*
 | Component | Pin | ESP32 Pin | Function |
 |---|---|---|---|
-| **Piezo Buzzer** | (+) | **GPIO 25** | Main siren alarm |
-| **Red LED (Zone 1)** | (+) via 220Ω | **GPIO 27** | Zone 1 Breach Indicator |
-| **Yellow LED (Zone 2)**| (+) via 220Ω | **GPIO 33** | Zone 2 Breach Indicator |
-| **Green LED (Armed)** | (+) via 220Ω | **GPIO 26** | System Armed / Secure |
-| **Ground** | (-) | `GND` | Ground rail |
+| **Piezo Buzzer** | (+) | **GPIO 25** | Main police siren |
+| | (-) | **GND** | Ground |
+| **Onboard Blue LED** | Internal | **GPIO 2** | Built-in Armed / Alert strobe (0 wires needed!) |
+| *Optional Red LED* | (+) via 220Ω | **GPIO 27** | Zone 1 Breach Indicator |
+| *Optional Green LED*| (+) via 220Ω | **GPIO 26** | System Armed Indicator |
 
-### Device B: Remote Sentry (NodeMCU ESP8266)
+### Device B: Remote Sentry (NodeMCU ESP-12E / ESP8266)
+*Total wires needed: Only 4 jumper wires!*
 | Component | Pin | NodeMCU Pin | Function |
 |---|---|---|---|
-| **Ultrasonic Sensor** | VCC / GND | `VU (5V)` / `GND` | Power |
-| | TRIG / ECHO | **D1** / **D2** | Perimeter tripwire |
-| **Onboard LED** | D4 | Internal | Transmission confirmation |
+| **Ultrasonic Sensor (HC-SR04)** | VCC | **VIN** (or **VU**) | Direct 5V from USB port (no external power needed!) |
+| | GND | **GND** | Sensor Ground |
+| | TRIG | **D1** (GPIO 5) | Ultrasonic Trigger Pulse |
+| | ECHO | **D2** (GPIO 4) | Ultrasonic Echo Pulse |
+| **Onboard Blue LED** | Internal | **D4** (GPIO 2) | Built-in Breach Transmission indicator (0 wires needed!) |
 
 ---
 
