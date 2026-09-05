@@ -1,7 +1,6 @@
 #include <Arduino.h>
 #include <ESP8266WiFi.h>
 #include <espnow.h>
-#include <user_interface.h>
 
 /*
  * =====================================================================================
@@ -70,23 +69,22 @@ void setup() {
   pinMode(TRIG_PIN, OUTPUT);
   pinMode(ECHO_PIN, INPUT);
   pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH); // Default OFF (active LOW) - protects bootloader
   
-  // Power-on Self Test: Blink Onboard Blue LED 3 times
+  // Power-on Self Test: Blink Onboard Blue LED 2 times
   Serial.println(F("[Self-Test] Blinking Onboard Blue LED (D4)..."));
-  for (int i = 0; i < 3; i++) {
+  for (int i = 0; i < 2; i++) {
     digitalWrite(LED_PIN, LOW);  // Active LOW = ON
-    delay(120);
+    delay(100);
     digitalWrite(LED_PIN, HIGH); // OFF
-    delay(120);
+    delay(100);
   }
   Serial.println(F("[Self-Test] LED functional. Initializing Wi-Fi radio...\n"));
 
   // Set device as Wi-Fi Station
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
-
-  // Force Wi-Fi Radio to Channel 1 (Locks with ESP32 receiver)
-  wifi_set_channel(1);
+  delay(100);
 
   // Initialize ESP-NOW on ESP8266
   if (esp_now_init() != 0) {
@@ -99,6 +97,7 @@ void setup() {
   esp_now_register_send_cb(OnDataSent);
 
   // Register peer (Master Hub broadcast on Channel 1)
+  // Note: Channel 1 is explicitly locked here inside the peer registration!
   esp_now_add_peer(masterHubAddress, ESP_NOW_ROLE_SLAVE, 1, NULL, 0);
 
   Serial.println(F("🟢 [SYSTEM ARMED] Sentry active on Channel 1. Monitoring perimeter...\n"));
@@ -151,6 +150,7 @@ void loop() {
   }
 
   delay(40);
+  yield();
 }
 
 long getDistance() {
