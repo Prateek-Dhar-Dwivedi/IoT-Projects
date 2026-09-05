@@ -4,11 +4,24 @@ A contactless electronic musical synthesizer and competitive millisecond reflex 
 
 ---
 
+## 🎯 Microcontroller Selection: Why Arduino Uno?
+
+> **Recommended Board:** **Arduino Uno R3**
+
+| Feature | **Arduino Uno (Recommended)** | **ESP32 / NodeMCU (ESP8266)** |
+|---|---|---|
+| **Sensor Logic Level** | **Native 5V** — Direct connection to HC-SR04 | **3.3V** — Requires resistor voltage divider on Echo pins |
+| **Audio Generation** | Built-in hardware `tone()` support | Requires LEDC PWM timer setup |
+| **Pin Simplicity** | Standard digital pins (no boot traps) | Must avoid strapping pins (GPIO0, 2, 15) |
+| **Resource Allocation** | Ideal for non-networked standalone builds | Saved for IoT, Web Dashboards & ESP-NOW projects |
+
+---
+
 ## 🛠️ Required Hardware
 1. **Arduino Uno**
 2. **2x Ultrasonic Sensors (HC-SR04)**
 3. **1x IR Obstacle / Proximity Sensor** (Active LOW)
-4. **1x Buzzer** (Passive or Active piezo buzzer)
+4. **1x Buzzer** (Piezo buzzer)
 5. **3x LEDs** (Green for Player 1, Red for Player 2, Blue/Yellow for Status)
 6. **3x 220Ω Resistors** (for LEDs)
 7. Breadboard & Jumper wires
@@ -22,15 +35,15 @@ A contactless electronic musical synthesizer and competitive millisecond reflex 
 | **Ultrasonic 1 (Pitch / Player 1)** | VCC | `5V` | Breadboard power rail |
 | | GND | `GND` | Breadboard ground rail |
 | | TRIG | `Pin 9` | Trigger pulse |
-| | ECHO | `Pin 8` | Echo pulse |
+| | ECHO | `Pin 8` | Echo pulse (5V safe on Uno) |
 | **Ultrasonic 2 (Tempo / Player 2)** | VCC | `5V` | Breadboard power rail |
 | | GND | `GND` | Breadboard ground rail |
 | | TRIG | `Pin 7` | Trigger pulse |
-| | ECHO | `Pin 6` | Echo pulse |
+| | ECHO | `Pin 6` | Echo pulse (5V safe on Uno) |
 | **IR Proximity Sensor** | VCC | `5V` | Breadboard power rail |
 | | GND | `GND` | Breadboard ground rail |
 | | OUT | `Pin 2` | Digital Out (Active LOW) |
-| **Buzzer** | Positive (+) | `Pin 10` | PWM / Tone capable |
+| **Buzzer** | Positive (+) | `Pin 10` | PWM / Tone output |
 | | Negative (-) | `GND` | Ground rail |
 | **LED 1 (Player 1 - Green)** | Anode (+) | `Pin 11` (via 220Ω) | Player 1 indicator |
 | | Cathode (-) | `GND` | Ground rail |
