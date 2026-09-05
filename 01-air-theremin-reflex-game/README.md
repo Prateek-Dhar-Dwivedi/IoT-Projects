@@ -1,81 +1,88 @@
-# Project 01: Contactless "Air Theremin" & 2-Player Reflex Reaction Game
+# Project 01: Contactless "Air Theremin" & 2-Player Reflex Reaction Game 🎶⚡
 
-A contactless electronic musical synthesizer and competitive millisecond reflex reaction game using two ultrasonic sensors, an IR proximity sensor, a buzzer, and 3 LEDs.
+An interactive dual-mode embedded systems project built on the **Arduino Uno** using ultrasonic ranging, infrared sensing, audio tone synthesis, and visual LED feedback.
 
 ---
 
-## 🎯 Microcontroller Selection: Why Arduino Uno?
+## 🌟 Features
 
-> **Recommended Board:** **Arduino Uno R3**
+### 1. Contactless "Air Theremin" (Audio Synthesizer)
+* **Pitch Control:** Waving your hand closer or further from **Sensor 1** modulates the audio frequency from deep bass (260 Hz) to high treble (1050 Hz).
+* **3-Zone Visual Pitch Meter:**
+  * 🟢 **Close (4 cm – 15 cm):** **Green LED** lights up (Low pitch).
+  * 🟡 **Middle (15 cm – 25 cm):** **Yellow LED** (Pin 13) lights up and pulses (Mid pitch).
+  * 🔴 **Far (25 cm – 38 cm):** **Red LED** lights up (High pitch).
+* **Tempo Modulation:** Waving your second hand over **Sensor 2** chops the tone into rhythmic staccato pulses.
+* **Octave Shifting:** Tap your hand over the **IR Sensor** to cycle pitch scales (Standard, High, Low).
 
-| Feature | **Arduino Uno (Recommended)** | **ESP32 / NodeMCU (ESP8266)** |
-|---|---|---|
-| **Sensor Logic Level** | **Native 5V** — Direct connection to HC-SR04 | **3.3V** — Requires resistor voltage divider on Echo pins |
-| **Audio Generation** | Built-in hardware `tone()` support | Requires LEDC PWM timer setup |
-| **Pin Simplicity** | Standard digital pins (no boot traps) | Must avoid strapping pins (GPIO0, 2, 15) |
-| **Resource Allocation** | Ideal for non-networked standalone builds | Saved for IoT, Web Dashboards & ESP-NOW projects |
+### 2. Competitive 2-Player Reaction Reflex Game
+* **Activation:** Hold hand over the **IR Sensor for 1.5 seconds**.
+* **Countdown:** Yellow LED flashes for a 3-2-1 countdown sequence.
+* **False-Start Detection:** Any player who breaks cover before the "GO!" signal is automatically disqualified for a foul.
+* **The "GO!" Signal:** A high-frequency tone sounds and the Yellow LED illuminates solid.
+* **Precision Timing:** Players race to hover over their sensor; the winner's LED flashes and their exact reaction time is measured in milliseconds.
 
 ---
 
 ## 🛠️ Required Hardware
-1. **Arduino Uno**
-2. **2x Ultrasonic Sensors (HC-SR04)**
-3. **1x IR Obstacle / Proximity Sensor** (Active LOW)
-4. **1x Buzzer** (Piezo buzzer)
-5. **3x LEDs** (Green for Player 1, Red for Player 2, Blue/Yellow for Status)
-6. **3x 220Ω Resistors** (for LEDs)
-7. Breadboard & Jumper wires
+
+| Component | Quantity | Description |
+|---|---|---|
+| **Arduino Uno R3** | 1 | Microcontroller board |
+| **HC-SR04 Ultrasonic Sensors** | 2 | Non-contact distance measurement |
+| **IR Proximity Sensor** | 1 | Active LOW digital optical barrier |
+| **Piezo Buzzer** | 1 | Audio output |
+| **LEDs** | 3 | 1x Green, 1x Red, 1x Yellow (or Blue) |
+| **220Ω Resistors** | 3 | Current limiting for LEDs |
+| **Breadboard & Jumper Wires** | 1 set | For modular wiring |
 
 ---
 
 ## 🔌 Pin Connection Table (Arduino Uno)
 
-| Component | Component Pin | Arduino Uno Pin | Notes |
+| Component | Pin | Arduino Uno Pin | Purpose |
 |---|---|---|---|
-| **Ultrasonic 1 (Pitch / Player 1)** | VCC | `5V` | Breadboard power rail |
-| | GND | `GND` | Breadboard ground rail |
-| | TRIG | `Pin 9` | Trigger pulse |
-| | ECHO | `Pin 8` | Echo pulse (5V safe on Uno) |
-| **Ultrasonic 2 (Tempo / Player 2)** | VCC | `5V` | Breadboard power rail |
-| | GND | `GND` | Breadboard ground rail |
-| | TRIG | `Pin 7` | Trigger pulse |
-| | ECHO | `Pin 6` | Echo pulse (5V safe on Uno) |
-| **IR Proximity Sensor** | VCC | `5V` | Breadboard power rail |
-| | GND | `GND` | Breadboard ground rail |
-| | OUT | `Pin 2` | Digital Out (Active LOW) |
-| **Buzzer** | Positive (+) | `Pin 10` | PWM / Tone output |
-| | Negative (-) | `GND` | Ground rail |
-| **LED 1 (Player 1 - Green)** | Anode (+) | `Pin 11` (via 220Ω) | Player 1 indicator |
-| | Cathode (-) | `GND` | Ground rail |
-| **LED 2 (Player 2 - Red)** | Anode (+) | `Pin 12` (via 220Ω) | Player 2 indicator |
-| | Cathode (-) | `GND` | Ground rail |
-| **LED 3 (Status - Blue/Yellow)** | Anode (+) | `Pin 5` (via 220Ω) | "GO" & rhythm pulse |
-| | Cathode (-) | `GND` | Ground rail |
+| **Power Rails** | VCC | `5V` | Common breadboard `(+)` rail |
+| | GND | `GND` | Common breadboard `(-)` rail |
+| **Ultrasonic 1 (Pitch / P1)** | TRIG | **Pin 9** | Trigger pulse |
+| | ECHO | **Pin 8** | Echo return (5V safe) |
+| **Ultrasonic 2 (Tempo / P2)** | TRIG | **Pin 7** | Trigger pulse |
+| | ECHO | **Pin 6** | Echo return (5V safe) |
+| **IR Sensor** | OUT | **Pin 2** | Digital out (Active LOW) |
+| **Piezo Buzzer** | (+) | **Pin 10** | Hardware Tone / PWM output |
+| | (-) | `GND` | Ground rail |
+| **Green LED (P1 / Close)** | (+) via 220Ω | **Pin 11** | Player 1 indicator / Zone 1 |
+| | (-) | `GND` | Ground rail |
+| **Red LED (P2 / Far)** | (+) via 220Ω | **Pin 12** | Player 2 indicator / Zone 3 |
+| | (-) | `GND` | Ground rail |
+| **Yellow LED (Status / Mid)** | (+) via 220Ω | **Pin 13** | "GO!" signal / Zone 2 |
+| | (-) | `GND` | Ground rail |
 
 ---
 
-## 🚀 How to Run and Test
+## 📋 Breadboard Wiring Guide
 
-1. Connect the Arduino Uno to your PC via USB.
-2. Open the file `01-air-theremin-reflex-game.ino` in **Arduino IDE**.
-3. Select **Board: Arduino Uno** and the appropriate **COM Port**.
-4. Click **Upload** (Ctrl + U).
-5. Open the **Serial Monitor** (Ctrl + Shift + M) and set baud rate to **115200 baud**.
+```text
+Arduino 5V  ──────────────────────────────────────> Red (+) Rail
+Arduino GND ──────────────────────────────────────> Blue (-) Rail
+
+[Green LED]  : Pin 11 ──[220Ω]──> Anode (+) | Cathode (-) ──> Blue (-) Rail
+[Red LED]    : Pin 12 ──[220Ω]──> Anode (+) | Cathode (-) ──> Blue (-) Rail
+[Yellow LED] : Pin 13 ──[220Ω]──> Anode (+) | Cathode (-) ──> Blue (-) Rail
+
+[Buzzer]     : Pin 10 ──────────> (+)       | (-)         ──> Blue (-) Rail
+[IR Sensor]  : Pin 2  ──────────> OUT       | VCC->5V     | GND->GND
+[Sensor 1]   : Trig->9, Echo->8             | VCC->5V     | GND->GND
+[Sensor 2]   : Trig->7, Echo->6             | VCC->5V     | GND->GND
+```
 
 ---
 
-## 🎮 How to Play / Demo
+## 🚀 How to Build & Run
 
-### Mode 1: Air Theremin (Synthesizer)
-- **Control Pitch:** Move your left hand closer or further from **Sensor 1** (between 4 cm and 35 cm) to play notes from low bass to high treble.
-- **Control Rhythm:** Move your right hand over **Sensor 2** to adjust the staccato pulse tempo.
-- **Change Scale / Octave:** Quick-tap/wave your hand over the **IR Sensor** to switch between Standard, High, and Low pitch presets.
-
-### Mode 2: 2-Player Reflex Reaction Game
-- **Enter Game:** Hold your hand over the **IR Sensor for 1.5 seconds**. You will hear a double beep indicating game mode.
-- **Rules:**
-  1. Both players place hands about 20 cm away from their sensor.
-  2. Listen to the 3-2-1 countdown beeps.
-  3. Wait during the random pause (do **not** move early or you will be disqualified for a false start!).
-  4. When you hear the high **"GO!"** beep and the Status LED turns ON, slap or hover your hand over your sensor (< 15 cm).
-  5. The first player to react wins! The system flashes the winner's LED and prints the reaction time (in milliseconds) to the Serial Monitor.
+1. Connect the components following the connection table above.
+2. Connect your Arduino Uno to your computer via USB.
+3. Open `01-air-theremin-reflex-game.ino` in the **Arduino IDE**.
+4. Select **Tools > Board > Arduino Uno** and pick your **COM Port**.
+5. Click **Upload** (`Ctrl + U`).
+6. Open **Tools > Serial Monitor** (`Ctrl + Shift + M`) and set baud rate to **115200**.

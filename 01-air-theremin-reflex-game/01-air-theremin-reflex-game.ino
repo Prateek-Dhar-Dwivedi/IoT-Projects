@@ -2,58 +2,54 @@
  * =====================================================================================
  * PROJECT 01: Contactless "Air Theremin" & 2-Player Reflex Reaction Game
  * Hardware: Arduino Uno + 2x Ultrasonic (HC-SR04) + 1x IR Sensor + 1x Buzzer + 3x LEDs
+ * =====================================================================================
  * 
- * MODES:
- * 1. AIR THEREMIN (Default):
- *    - Hand over Sensor 1 (Left) controls musical pitch/frequency (200Hz - 1200Hz)
- *    - Hand over Sensor 2 (Right) controls tempo / pulse length
- *    - Tap IR Sensor to cycle octave scale presets (Low, Medium, High)
+ * PIN ASSIGNMENTS:
+ * - Ultrasonic 1 (Pitch / Player 1) : TRIG = Pin 9, ECHO = Pin 8
+ * - Ultrasonic 2 (Tempo / Player 2) : TRIG = Pin 7, ECHO = Pin 6
+ * - IR Sensor (Mode / Octave)       : OUT  = Pin 2
+ * - Piezo Buzzer                    : (+)  = Pin 10
+ * - Green LED (Close / Player 1)    : (+)  = Pin 11
+ * - Red LED   (Far / Player 2)      : (+)  = Pin 12
+ * - Yellow LED (Mid / Status / GO)  : (+)  = Pin 13
  * 
- * 2. 2-PLAYER REFLEX REACTION GAME:
- *    - Hold hand over IR sensor for 1.5s to enter Game Mode!
- *    - 3 countdown beeps... then random pause (1.5s - 4.5s)
- *    - "GO!" beep sounds & Status LED turns ON
- *    - Player 1 (Sensor 1) and Player 2 (Sensor 2) race to hover hand (< 15cm)
- *    - First to react wins! Winner's LED flashes and reaction time (ms) is printed.
+ * 🎮 HOW TO USE:
+ * 1. Air Theremin Mode (Default):
+ *    - Close  ( 4cm - 15cm) : GREEN LED ON (Low Pitch)
+ *    - Middle (15cm - 25cm) : YELLOW LED ON & BLINKS (Mid Pitch)
+ *    - Far    (25cm - 38cm) : RED LED ON (High Pitch)
+ *    - Sensor 2 (Right)     : Wave hand to add rhythmic pulse/tempo
+ *    - Tap IR Sensor        : Switches octave preset
+ * 
+ * 2. 2-Player Reflex Game:
+ *    - Hold hand on IR Sensor for 1.5s to start game!
+ *    - Yellow LED blinks for 3-2-1 countdown... then random pause.
+ *    - "GO!" beep sounds & Yellow LED turns ON solid.
+ *    - Race to hover hand (< 15cm) over your sensor!
+ *    - Winner's LED flashes & reaction time (ms) prints to Serial Monitor.
  * =====================================================================================
  */
 
 // --- PIN DEFINITIONS ---
-// Ultrasonic Sensor 1 (Pitch / Player 1)
 const int TRIG_1 = 9;
 const int ECHO_1 = 8;
-
-// Ultrasonic Sensor 2 (Tempo / Player 2)
 const int TRIG_2 = 7;
 const int ECHO_2 = 6;
-
-// IR Obstacle Sensor (Mode Selector / Enter Key)
-const int IR_PIN = 2; // Active LOW on most standard IR modules
-
-// Audio Actuator
+const int IR_PIN = 2;
 const int BUZZER_PIN = 10;
 
-// Visual Indicators
-const int LED_P1_GREEN = 11; // Player 1 / Low Note indicator
-const int LED_P2_RED   = 12; // Player 2 / High Note indicator
-const int LED_STATUS   = 5;  // Game Status / "GO" indicator
+const int LED_P1_GREEN = 11; // Pin 11: Green LED
+const int LED_P2_RED   = 12; // Pin 12: Red LED
+const int LED_STATUS   = 13; // Pin 13: Yellow LED
 
-// --- CONSTANTS & SYSTEM STATES ---
-enum SystemMode {
-  MODE_THEREMIN,
-  MODE_REFLEX_GAME
-};
-
+// --- SYSTEM STATES ---
+enum SystemMode { MODE_THEREMIN, MODE_REFLEX_GAME };
 SystemMode currentMode = MODE_THEREMIN;
+int octaveOffset = 0;
 
-// Theremin Octave Presets
-int octaveOffset = 0; // 0 = Standard, 1 = High, 2 = Low
-
-// Function declarations
 long getDistance(int trigPin, int echoPin);
 void runTheremin();
 void runReflexGame();
-void playToneSequence(int *frequencies, int *durations, int length);
 
 void setup() {
   Serial.begin(115200);
@@ -61,69 +57,61 @@ void setup() {
   Serial.println(F(" Project 01: Air Theremin & 2-Player Reflex Game  "));
   Serial.println(F("=================================================="));
 
-  // Initialize Ultrasonic Pins
   pinMode(TRIG_1, OUTPUT);
   pinMode(ECHO_1, INPUT);
   pinMode(TRIG_2, OUTPUT);
   pinMode(ECHO_2, INPUT);
-
-  // Initialize IR Sensor
   pinMode(IR_PIN, INPUT_PULLUP);
 
-  // Initialize Outputs
   pinMode(BUZZER_PIN, OUTPUT);
   pinMode(LED_P1_GREEN, OUTPUT);
   pinMode(LED_P2_RED, OUTPUT);
   pinMode(LED_STATUS, OUTPUT);
 
-  // Startup Sound & LED Test
+  // Power-on startup animation: Green -> Red -> Yellow, then power chord!
+  digitalWrite(LED_P1_GREEN, HIGH); delay(150); digitalWrite(LED_P1_GREEN, LOW);
+  digitalWrite(LED_STATUS, HIGH);   delay(150); digitalWrite(LED_STATUS, LOW);
+  digitalWrite(LED_P2_RED, HIGH);   delay(150); digitalWrite(LED_P2_RED, LOW);
+
   digitalWrite(LED_P1_GREEN, HIGH);
-  digitalWrite(LED_P2_RED, HIGH);
   digitalWrite(LED_STATUS, HIGH);
+  digitalWrite(LED_P2_RED, HIGH);
   tone(BUZZER_PIN, 523, 100); delay(120);
   tone(BUZZER_PIN, 659, 100); delay(120);
   tone(BUZZER_PIN, 784, 150); delay(180);
   digitalWrite(LED_P1_GREEN, LOW);
-  digitalWrite(LED_P2_RED, LOW);
   digitalWrite(LED_STATUS, LOW);
+  digitalWrite(LED_P2_RED, LOW);
 
   Serial.println(F("[Ready] Mode 1: Air Theremin Active."));
-  Serial.println(F("-> Wave over Left Sensor for Pitch, Right Sensor for Rhythm."));
-  Serial.println(F("-> Hold IR sensor for 1.5s to start 2-Player Game!"));
+  Serial.println(F("-> Move hand over Sensor 1 (Green -> Yellow -> Red)"));
+  Serial.println(F("-> Hold IR Sensor 1.5s for 2-Player Reflex Game"));
 }
 
 void loop() {
-  // Check for Mode Switch via IR Sensor
-  // Most IR sensors output LOW when an obstacle is present
+  // Check for Mode Switch via IR Sensor (Active LOW)
   if (digitalRead(IR_PIN) == LOW) {
     unsigned long holdStart = millis();
     while (digitalRead(IR_PIN) == LOW) {
       if (millis() - holdStart > 1500) {
-        // Switch to Game Mode
         currentMode = (currentMode == MODE_THEREMIN) ? MODE_REFLEX_GAME : MODE_THEREMIN;
-        
-        // Mode confirmation feedback
         tone(BUZZER_PIN, 880, 100); delay(120);
         tone(BUZZER_PIN, 1320, 200); delay(250);
         
         if (currentMode == MODE_REFLEX_GAME) {
-          Serial.println(F("\n>>> SWITCHED TO: 2-Player Reflex Reaction Game! <<<"));
+          Serial.println(F("\n>>> STARTING: 2-Player Reflex Reaction Game! <<<"));
           runReflexGame();
-          // After game concludes, return to Theremin
           currentMode = MODE_THEREMIN;
           Serial.println(F("\n>>> RETURNED TO: Air Theremin Mode <<<"));
-        } else {
-          Serial.println(F("\n>>> SWITCHED TO: Air Theremin Mode <<<"));
         }
-        
-        while (digitalRead(IR_PIN) == LOW); // Wait for release
+        while (digitalRead(IR_PIN) == LOW);
         delay(300);
         return;
       }
       delay(50);
     }
     
-    // If it was just a quick tap in Theremin mode, cycle octave preset
+    // Quick tap switches octave preset
     if (currentMode == MODE_THEREMIN) {
       octaveOffset = (octaveOffset + 1) % 3;
       tone(BUZZER_PIN, 600 + (octaveOffset * 200), 80);
@@ -133,7 +121,7 @@ void loop() {
     }
   }
 
-  // Execute active mode
+  // Run Air Theremin
   if (currentMode == MODE_THEREMIN) {
     runTheremin();
   }
@@ -146,42 +134,53 @@ void runTheremin() {
   long distPitch = getDistance(TRIG_1, ECHO_1);
   long distTempo = getDistance(TRIG_2, ECHO_2);
 
-  // If a hand is detected on Sensor 1 (Pitch: 4cm to 35cm)
-  if (distPitch >= 4 && distPitch <= 35) {
-    // Map distance (4-35cm) to musical frequency (C4=262Hz to C6=1046Hz)
-    int baseFreq = map(distPitch, 35, 4, 260, 1050);
-    
-    if (octaveOffset == 1) baseFreq *= 1.5;      // High scale
-    else if (octaveOffset == 2) baseFreq *= 0.75;// Low scale
+  // Active sensing zone: 4 cm to 38 cm
+  if (distPitch >= 4 && distPitch <= 38) {
+    int baseFreq = map(distPitch, 38, 4, 260, 1050);
+    if (octaveOffset == 1) baseFreq *= 1.4;
+    else if (octaveOffset == 2) baseFreq *= 0.75;
 
-    // Pulse length / tempo based on Sensor 2 (Rhythm)
-    int pulseDelay = 0;
-    if (distTempo >= 4 && distTempo <= 35) {
-      pulseDelay = map(distTempo, 4, 35, 30, 250); // Staccato tempo
+    // --- 3-ZONE LED METER ---
+    if (distPitch < 15) {
+      // Close (4-15 cm) -> Green LED
+      digitalWrite(LED_P1_GREEN, HIGH);
+      digitalWrite(LED_STATUS, LOW);
+      digitalWrite(LED_P2_RED, LOW);
+    } 
+    else if (distPitch >= 15 && distPitch <= 25) {
+      // Middle (15-25 cm) -> Yellow LED (Pin 13) Pulses!
+      digitalWrite(LED_P1_GREEN, LOW);
+      digitalWrite(LED_STATUS, (millis() % 200 < 100) ? HIGH : LOW);
+      digitalWrite(LED_P2_RED, LOW);
+    } 
+    else {
+      // Far (25-38 cm) -> Red LED
+      digitalWrite(LED_P1_GREEN, LOW);
+      digitalWrite(LED_STATUS, LOW);
+      digitalWrite(LED_P2_RED, HIGH);
     }
 
-    // Visual feedback
-    digitalWrite(LED_P1_GREEN, distPitch < 20 ? HIGH : LOW);
-    digitalWrite(LED_P2_RED, distPitch >= 20 ? HIGH : LOW);
+    // Tempo modulation from Sensor 2
+    int pulseDelay = 0;
+    if (distTempo >= 4 && distTempo <= 35) {
+      pulseDelay = map(distTempo, 4, 35, 40, 220);
+    }
 
-    // Play tone
     if (pulseDelay > 0) {
       tone(BUZZER_PIN, baseFreq, pulseDelay / 2);
-      digitalWrite(LED_STATUS, HIGH);
       delay(pulseDelay / 2);
-      digitalWrite(LED_STATUS, LOW);
+      noTone(BUZZER_PIN);
       delay(pulseDelay / 2);
     } else {
       tone(BUZZER_PIN, baseFreq);
-      digitalWrite(LED_STATUS, HIGH);
-      delay(30);
+      delay(25);
     }
   } else {
-    // No hand detected: silence
+    // Silence when hands are away
     noTone(BUZZER_PIN);
     digitalWrite(LED_P1_GREEN, LOW);
-    digitalWrite(LED_P2_RED, LOW);
     digitalWrite(LED_STATUS, LOW);
+    digitalWrite(LED_P2_RED, LOW);
     delay(40);
   }
 }
@@ -191,11 +190,11 @@ void runTheremin() {
 // =====================================================================================
 void runReflexGame() {
   Serial.println(F("--------------------------------------------------"));
-  Serial.println(F(" Get ready! Place hands 20cm away from sensors... "));
-  Serial.println(F(" Wait for the 'GO!' signal. DON'T FALSE-START!    "));
+  Serial.println(F(" Get ready! Hands 20cm away from sensors...       "));
+  Serial.println(F(" Watch Yellow LED (Pin 13) for countdown!         "));
   Serial.println(F("--------------------------------------------------"));
 
-  // 3-2-1 Countdown
+  // 3-2-1 Countdown on Yellow LED
   for (int i = 3; i >= 1; i--) {
     Serial.print(F("Countdown: ")); Serial.println(i);
     tone(BUZZER_PIN, 440, 150);
@@ -205,25 +204,22 @@ void runReflexGame() {
     delay(850);
   }
 
-  // Random Delay between 1.5 and 4.5 seconds
+  // Random Delay (1.5s to 4.5s)
   unsigned long waitTime = random(1500, 4500);
   unsigned long startWait = millis();
 
-  // Check for false starts during the wait
+  // False-start check
   while (millis() - startWait < waitTime) {
-    long p1Dist = getDistance(TRIG_1, ECHO_1);
-    long p2Dist = getDistance(TRIG_2, ECHO_2);
-
-    if (p1Dist > 0 && p1Dist < 15) {
-      Serial.println(F("[FOUL!] Player 1 false-started! Player 2 wins by DQ!"));
+    if (getDistance(TRIG_1, ECHO_1) < 15) {
+      Serial.println(F("[FOUL!] Player 1 moved early! Player 2 Wins!"));
       tone(BUZZER_PIN, 150, 600);
       digitalWrite(LED_P2_RED, HIGH);
       delay(1500);
       digitalWrite(LED_P2_RED, LOW);
       return;
     }
-    if (p2Dist > 0 && p2Dist < 15) {
-      Serial.println(F("[FOUL!] Player 2 false-started! Player 1 wins by DQ!"));
+    if (getDistance(TRIG_2, ECHO_2) < 15) {
+      Serial.println(F("[FOUL!] Player 2 moved early! Player 1 Wins!"));
       tone(BUZZER_PIN, 150, 600);
       digitalWrite(LED_P1_GREEN, HIGH);
       delay(1500);
@@ -235,24 +231,20 @@ void runReflexGame() {
 
   // === GO SIGNAL! ===
   Serial.println(F("\n>>> GO! GO! GO! <<<"));
-  digitalWrite(LED_STATUS, HIGH);
+  digitalWrite(LED_STATUS, HIGH); // Yellow LED ON for GO!
   tone(BUZZER_PIN, 1200, 250);
   unsigned long goTime = millis();
 
   int winner = 0;
   unsigned long reactionTime = 0;
 
-  // Wait for fastest player (timeout after 5 seconds)
   while (millis() - goTime < 5000) {
-    long d1 = getDistance(TRIG_1, ECHO_1);
-    long d2 = getDistance(TRIG_2, ECHO_2);
-
-    if (d1 > 0 && d1 < 15) {
+    if (getDistance(TRIG_1, ECHO_1) < 15) {
       winner = 1;
       reactionTime = millis() - goTime;
       break;
     }
-    if (d2 > 0 && d2 < 15) {
+    if (getDistance(TRIG_2, ECHO_2) < 15) {
       winner = 2;
       reactionTime = millis() - goTime;
       break;
@@ -262,14 +254,11 @@ void runReflexGame() {
 
   digitalWrite(LED_STATUS, LOW);
 
-  // Announce Winner
   if (winner == 1) {
-    Serial.print(F("🏆 PLAYER 1 WINS (Green)! Reaction time: "));
+    Serial.print(F("🏆 PLAYER 1 WINS (Green)! Time: "));
     Serial.print(reactionTime);
     Serial.println(F(" ms"));
-
-    // Victory Fanfare for Player 1
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       digitalWrite(LED_P1_GREEN, HIGH);
       tone(BUZZER_PIN, 800 + (i * 100), 100);
       delay(120);
@@ -277,12 +266,10 @@ void runReflexGame() {
       delay(60);
     }
   } else if (winner == 2) {
-    Serial.print(F("🏆 PLAYER 2 WINS (Red)! Reaction time: "));
+    Serial.print(F("🏆 PLAYER 2 WINS (Red)! Time: "));
     Serial.print(reactionTime);
     Serial.println(F(" ms"));
-
-    // Victory Fanfare for Player 2
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
       digitalWrite(LED_P2_RED, HIGH);
       tone(BUZZER_PIN, 800 + (i * 100), 100);
       delay(120);
@@ -290,33 +277,21 @@ void runReflexGame() {
       delay(60);
     }
   } else {
-    Serial.println(F("⏰ Timeout! Nobody reacted in time."));
+    Serial.println(F("⏰ Timeout! Nobody reacted."));
     tone(BUZZER_PIN, 200, 500);
   }
 
-  Serial.println(F("\nGame Over. Tap IR sensor to return or play again."));
   delay(1500);
 }
 
-// =====================================================================================
-// HELPER: HIGH-PRECISION ULTRASONIC DISTANCE READING
-// =====================================================================================
 long getDistance(int trigPin, int echoPin) {
-  // Clear trigger
   digitalWrite(trigPin, LOW);
   delayMicroseconds(2);
-
-  // Send 10µs pulse
   digitalWrite(trigPin, HIGH);
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
 
-  // Measure echo pulse (with 25ms timeout ~4.3 meters max)
   long duration = pulseIn(echoPin, HIGH, 25000);
-  if (duration == 0) return 999; // Out of range
-
-  // Speed of sound: 343 m/s = 0.0343 cm/µs
-  // Distance = (duration * 0.0343) / 2
-  long distanceCm = duration * 0.0343 / 2;
-  return distanceCm;
+  if (duration == 0) return 999;
+  return duration * 0.0343 / 2;
 }
