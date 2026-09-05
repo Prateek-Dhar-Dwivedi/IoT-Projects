@@ -1,0 +1,11 @@
+# Compiled output & Arduino temp files
+*.hex
+*.elf
+*.bin
+*.map
+build/
+.pio/
+.vscode/
+.idea/
+*.swp
+*~
