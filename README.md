@@ -20,8 +20,8 @@ A curated collection of embedded systems and IoT projects built using **Arduino 
 | **03** | [`03-smart-parking-assistant`](./03-smart-parking-assistant/) | Dual-Bay Smart Parking & Reverse Proximity Warner | Arduino Uno | ~25 min | ✅ Complete |
 | **04** | [`04-air-pin-vault-lock`](./04-air-pin-vault-lock/) | Sci-Fi Touchless Air-PIN Safe / Vault Lock | Arduino Uno | ~20 min | ✅ Complete |
 | **05** | [`05-assistive-walking-aid`](./05-assistive-walking-aid/) | Smart Blind Walking Aid (Head & Foot Detection) | Arduino Uno | ~25 min | ✅ Complete |
-| **06** | [`06-posture-distance-monitor`](./06-posture-distance-monitor/) | Ergonomic Posture & Screen Monitor (IoT Dashboard) | ESP32 | ~25 min | ✅ Complete |
-| **07** | `07-air-gesture-desk-assistant` | Touchless Air-Gesture Smart Controller | ESP32 | ~30 min | ⏳ Queued |
-| **08** | `08-industrial-qc-station` | Factory Conveyor QC Sizing Inspector | ESP32 | ~35 min | ⏳ Queued |
-| **09** | `09-adas-blindspot-alert` | Vehicle ADAS Blind-Spot & Anti-Drowsiness | ESP32 | ~40 min | ⏳ Queued |
+| **06** | [`06-posture-distance-monitor`](./06-posture-distance-monitor/) | Ergonomic Posture & Screen Distance Monitor | Arduino Uno | ~25 min | ✅ Complete |
+| **07** | [`07-adas-blindspot-alert`](./07-adas-blindspot-alert/) | Vehicle ADAS Dual Blind-Spot & Anti-Drowsiness | Arduino Uno | ~25 min | ✅ Complete |
+| **08** | `08-industrial-qc-station` | Factory Conveyor QC Sizing Inspector | Arduino / ESP32 | ~25 min | ⏳ Queued |
+| **09** | `09-air-gesture-desk-assistant` | Touchless Air-Gesture Smart Controller | Arduino / ESP32 | ~30 min | ⏳ Queued |
 | **10** | `10-espnow-perimeter-alarm` | Multi-Zone Wireless Security Perimeter | ESP32 + NodeMCUs | ~50 min | ⏳ Queued |
