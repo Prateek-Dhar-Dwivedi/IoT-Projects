@@ -7,7 +7,7 @@ A curated collection of embedded systems and IoT projects built using **Arduino 
 ## 📦 Hardware Inventory
 - **Microcontrollers:** 1x Arduino Uno R3, 1x ESP32 Dev Module, 2x NodeMCU (ESP8266), 1x ESP-12E
 - **Sensors:** 2x Ultrasonic Sensors (HC-SR04), 1x IR Proximity/Obstacle Sensor
-- **Actuators & Outputs:** 1x Piezo Buzzer, Multiple LEDs (Green, Red, Blue/Yellow), 220Ω Resistors
+- **Actuators & Outputs:** 1x Piezo Buzzer, Multiple LEDs (Green, Red, Yellow), 220Ω Resistors
 
 ---
 
@@ -15,8 +15,8 @@ A curated collection of embedded systems and IoT projects built using **Arduino 
 
 | # | Directory | Project Name | Primary Board | Est. Time | Status |
 |---|---|---|---|---|---|
-| **01** | [`01-air-theremin-reflex-game`](./01-air-theremin-reflex-game/) | Contactless Air Theremin & Reflex Reaction Game | Arduino Uno | ~20 min | ✅ Ready |
-| **02** | `02-traffic-speed-radar` | High-Speed Traffic Radar & Speed Camera Trap | Arduino / NodeMCU | ~25 min | ⏳ Queued |
+| **01** | [`01-air-theremin-reflex-game`](./01-air-theremin-reflex-game/) | Contactless Air Theremin & Reflex Reaction Game | Arduino Uno | ~20 min | ✅ Complete |
+| **02** | [`02-traffic-speed-radar`](./02-traffic-speed-radar/) | High-Speed Traffic Radar & Speed Camera Trap | Arduino Uno | ~25 min | ✅ Complete |
 | **03** | `03-smart-parking-assistant` | Dual-Bay Smart Parking & Proximity Warner | Arduino Uno | ~25 min | ⏳ Queued |
 | **04** | `04-posture-distance-monitor` | Ergonomic Posture & Screen Distance Monitor | ESP32 / NodeMCU | ~30 min | ⏳ Queued |
 | **05** | `05-air-gesture-desk-assistant` | Touchless Air-Gesture Smart Controller | Arduino / ESP32 | ~30 min | ⏳ Queued |
