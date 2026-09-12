@@ -406,23 +406,24 @@ void setup() {
       Serial.print(".");
     }
 
-    if (WiFi.status() == WL_CONNECTED) {
-      isConnectedToWiFi = true;
-      Serial.println(F("\n✅ Successfully Connected to Local Wi-Fi!"));
-      Serial.print(F("🌐 Web Dashboard URL: http://"));
-      Serial.println(WiFi.localIP());
-    } else {
-      Serial.println(F("\n⚠️ Could not connect to Wi-Fi! Switching to Hotspot Mode..."));
-    }
+  // Check if we actually got a real IP from Wi-Fi
+  if (WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0)) {
+    isConnectedToWiFi = true;
+    Serial.println(F("\n✅ Connected to Wi-Fi!"));
+    Serial.print(F("🌐 Web Dashboard URL: http://"));
+    Serial.println(WiFi.localIP());
+  } else {
+    isConnectedToWiFi = false;
+    Serial.println(F("\n⚠️ Wi-Fi disconnected or assigned 0.0.0.0! Switching to Hotspot Mode..."));
   }
 
-  // 2. If NOT connected to Wi-Fi, cleanly switch to Autonomous Hotspot Mode!
+  // If NOT connected, cleanly switch to Autonomous Hotspot Mode!
   if (!isConnectedToWiFi) {
-    WiFi.disconnect();
-    delay(100);
+    WiFi.disconnect(true);
+    delay(200);
     WiFi.mode(WIFI_AP);
     WiFi.softAP(ap_ssid, ap_password);
-    delay(100);
+    delay(200);
 
     Serial.println(F("\n--------------------------------------------------------"));
     Serial.println(F("📡 [HOTSPOT ACTIVE] Sentry is broadcasting its own Wi-Fi!"));
@@ -432,9 +433,7 @@ void setup() {
     Serial.println(F("--------------------------------------------------------\n"));
   }
 
-  // Start HTTP Streaming Server
   startCameraServer();
-
   Serial.println(F("🚀 System Initialized Successfully!\n"));
 }
 
@@ -444,13 +443,13 @@ void loop() {
     lastBanner = millis();
     Serial.println(F("--------------------------------------------------"));
     Serial.println(F("🟢 SENTRY READY & STREAMING LIVE!"));
-    if (WiFi.getMode() == WIFI_AP) {
+    if (WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0)) {
+      Serial.print(F("🌐 Open Browser  : http://"));
+      Serial.println(WiFi.localIP());
+    } else {
       Serial.println(F("📱 Connect Wi-Fi : ESP32-CAM-Sentry (Pass: password123)"));
       Serial.print(F("🌐 Open Browser  : http://"));
       Serial.println(WiFi.softAPIP());
-    } else {
-      Serial.print(F("🌐 Open Browser  : http://"));
-      Serial.println(WiFi.localIP());
     }
     Serial.println(F("--------------------------------------------------\n"));
   }
