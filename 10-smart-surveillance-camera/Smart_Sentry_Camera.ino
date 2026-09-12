@@ -19,8 +19,8 @@
 
 // --- OPTIONAL: Enter your home Wi-Fi credentials below ---
 // If left as-is, the camera will still broadcast its own Wi-Fi Hotspot ("ESP32-CAM-Sentry")!
-const char* wifi_ssid = "";      // e.g. "YourHomeWiFi"
-const char* wifi_password = "";  // e.g. "YourWiFiPassword"
+const char* wifi_ssid = "fhaaaa";
+const char* wifi_password = "sohit7ss";
 
 // --- Access Point Credentials (Connect phone/PC directly to this!) ---
 const char* ap_ssid = "ESP32-CAM-Sentry";
