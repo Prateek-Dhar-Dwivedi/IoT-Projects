@@ -390,47 +390,52 @@ void setup() {
   }
   Serial.println(F("📷 Camera Module (OV2640) Initialized OK!"));
 
-  // --- WI-FI CONFIGURATION ---
-  WiFi.mode(WIFI_AP_STA);
+  // --- WI-FI CONFIGURATION (Connect first, clean Hotspot fallback) ---
+  bool isConnectedToWiFi = false;
 
-  // 1. Start Autonomous SoftAP (Hotspot)
-  WiFi.softAP(ap_ssid, ap_password);
-  IPAddress apIP = WiFi.softAPIP();
-  Serial.println(F("\n--------------------------------------------------------"));
-  Serial.print(F("📡 [Hotspot Mode] Wi-Fi SSID : ")); Serial.println(ap_ssid);
-  Serial.print(F("🔒 [Hotspot Mode] Password  : ")); Serial.println(ap_password);
-  Serial.print(F("🌐 [Hotspot Mode] Web URL   : http://")); Serial.println(apIP);
-  Serial.println(F("--------------------------------------------------------"));
-
-  // 2. Connect to Home Wi-Fi (if provided)
+  // 1. Try connecting to Local Wi-Fi first if credentials are provided
   if (strlen(wifi_ssid) > 0) {
-    Serial.print(F("Connecting to Local Wi-Fi: "));
-    Serial.println(wifi_ssid);
+    WiFi.mode(WIFI_STA);
     WiFi.begin(wifi_ssid, wifi_password);
-    
+    Serial.print(F("\nConnecting to Wi-Fi: "));
+    Serial.println(wifi_ssid);
+
     unsigned long startAttempt = millis();
-    while (WiFi.status() != WL_CONNECTED && millis() - startAttempt < 8000) {
-      delay(500);
+    while (WiFi.status() != WL_CONNECTED && (millis() - startAttempt < 7000)) {
+      delay(400);
       Serial.print(".");
     }
-    
+
     if (WiFi.status() == WL_CONNECTED) {
-      Serial.println(F("\n✅ Connected to Home Wi-Fi!"));
-      Serial.print(F("🌐 [Local Network URL]: http://"));
+      isConnectedToWiFi = true;
+      Serial.println(F("\n✅ Successfully Connected to Local Wi-Fi!"));
+      Serial.print(F("🌐 Web Dashboard URL: http://"));
       Serial.println(WiFi.localIP());
     } else {
-      Serial.println(F("\n⚠️ Home Wi-Fi not connected (Use the Hotspot URL above!)"));
+      Serial.println(F("\n⚠️ Could not connect to Wi-Fi! Switching to Hotspot Mode..."));
     }
+  }
+
+  // 2. If NOT connected to Wi-Fi, cleanly switch to Autonomous Hotspot Mode!
+  if (!isConnectedToWiFi) {
+    WiFi.disconnect();
+    delay(100);
+    WiFi.mode(WIFI_AP);
+    WiFi.softAP(ap_ssid, ap_password);
+    delay(100);
+
+    Serial.println(F("\n--------------------------------------------------------"));
+    Serial.println(F("📡 [HOTSPOT ACTIVE] Sentry is broadcasting its own Wi-Fi!"));
+    Serial.print(F("📶 Wi-Fi SSID : ")); Serial.println(ap_ssid);
+    Serial.print(F("🔒 Password  : ")); Serial.println(ap_password);
+    Serial.print(F("🌐 Web URL   : http://")); Serial.println(WiFi.softAPIP());
+    Serial.println(F("--------------------------------------------------------\n"));
   }
 
   // Start HTTP Streaming Server
   startCameraServer();
 
-  Serial.println(F("\n========================================================"));
-  Serial.println(F("  SENTRY SYSTEM READY!                                  "));
-  Serial.println(F("  1. Connect your Phone or PC to Wi-Fi: ESP32-CAM-Sentry"));
-  Serial.println(F("  2. Open your browser and go to: http://192.168.4.1    "));
-  Serial.println(F("========================================================\n"));
+  Serial.println(F("🚀 System Initialized Successfully!\n"));
 }
 
 void loop() {
@@ -439,8 +444,14 @@ void loop() {
     lastBanner = millis();
     Serial.println(F("--------------------------------------------------"));
     Serial.println(F("🟢 SENTRY READY & STREAMING LIVE!"));
-    Serial.println(F("📱 Connect Wi-Fi : ESP32-CAM-Sentry (Pass: password123)"));
-    Serial.println(F("🌐 Open Browser  : http://192.168.4.1"));
+    if (WiFi.getMode() == WIFI_AP) {
+      Serial.println(F("📱 Connect Wi-Fi : ESP32-CAM-Sentry (Pass: password123)"));
+      Serial.print(F("🌐 Open Browser  : http://"));
+      Serial.println(WiFi.softAPIP());
+    } else {
+      Serial.print(F("🌐 Open Browser  : http://"));
+      Serial.println(WiFi.localIP());
+    }
     Serial.println(F("--------------------------------------------------\n"));
   }
   delay(200);
