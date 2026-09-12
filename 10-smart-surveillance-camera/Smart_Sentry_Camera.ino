@@ -406,15 +406,16 @@ void setup() {
       Serial.print(".");
     }
 
-  // Check if we actually got a real IP from Wi-Fi
-  if (WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0)) {
-    isConnectedToWiFi = true;
-    Serial.println(F("\n✅ Connected to Wi-Fi!"));
-    Serial.print(F("🌐 Web Dashboard URL: http://"));
-    Serial.println(WiFi.localIP());
-  } else {
-    isConnectedToWiFi = false;
-    Serial.println(F("\n⚠️ Wi-Fi disconnected or assigned 0.0.0.0! Switching to Hotspot Mode..."));
+    // Check if we actually got a real IP from Wi-Fi
+    if (WiFi.status() == WL_CONNECTED && WiFi.localIP() != IPAddress(0, 0, 0, 0)) {
+      isConnectedToWiFi = true;
+      Serial.println(F("\n✅ Connected to Wi-Fi!"));
+      Serial.print(F("🌐 Web Dashboard URL: http://"));
+      Serial.println(WiFi.localIP());
+    } else {
+      isConnectedToWiFi = false;
+      Serial.println(F("\n⚠️ Wi-Fi disconnected or assigned 0.0.0.0! Switching to Hotspot Mode..."));
+    }
   }
 
   // If NOT connected, cleanly switch to Autonomous Hotspot Mode!
