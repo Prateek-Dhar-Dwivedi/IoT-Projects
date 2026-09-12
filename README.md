@@ -1,6 +1,6 @@
 # IoT Projects Portfolio 🚀
 
-A complete, production-ready portfolio of **10 embedded systems and IoT projects** built using **Arduino Uno R3**, **ESP32-CAM (OV2640)**, **Dual Ultrasonic sensors (HC-SR04)**, **IR proximity sensor**, **piezo buzzer**, and **LED indicators**.
+A complete, production-ready portfolio of **11 embedded systems and IoT projects** built using **Arduino Uno R3**, **ESP32-CAM (OV2640)**, **Dual Ultrasonic sensors (HC-SR04)**, **IR proximity sensor**, **piezo buzzer**, and **LED indicators**.
 
 ---
 
@@ -13,14 +13,15 @@ All 9 Arduino projects run on the **exact same hardware wiring**. Once wired, yo
 - **Actuators & Outputs:** 1x Piezo Buzzer (Pin 10), 3x LEDs (Green on Pin 7, Red on Pin 8, Yellow on Pin 9) + 220Ω Resistors
 - **Breadboard:** 1x Solderless Half/Full Breadboard + Jumper Wires
 
-### 2. Flagship Computer Vision & Video Sentry (Project 10)
-- **Microcontroller & Camera:** AI-Thinker ESP32-CAM module with 2MP OV2640 Camera
+### 2. Standalone Computer Vision & Edge AI Projects (10 – 11): Zero Breadboard Wiring
+Runs 100% on the standalone **AI-Thinker ESP32-CAM module** and its micro-USB daughterboard with zero external jumper wires or breadboards!
+- **Microcontroller & Vision Sensor:** AI-Thinker ESP32-CAM module with 2MP OV2640 Camera
 - **USB Interface:** ESP32-CAM-MB micro-USB programmer shield (CH340 driver, automatic upload & reset)
-- **Features:** Autonomous SoftAP Hotspot, low-latency MJPEG video streaming, night spotlight LED (GPIO 4), and photo capture
+- **Features:** Autonomous SoftAP Hotspots, low-latency MJPEG video streaming, high-power night spotlight LED (GPIO 4), single-frame photo capture, edge AI face detection, biometric face enrollment, and synthesized audio security sirens
 
 ---
 
-## 🗂️ Complete 10-Project Portfolio Index
+## 🗂️ Complete 11-Project Portfolio Index
 
 | # | Directory | Project Name | Primary Board | Highlights | Status |
 |---|---|---|---|---|---|
@@ -34,3 +35,4 @@ All 9 Arduino projects run on the **exact same hardware wiring**. Once wired, yo
 | **08** | [`08-industrial-qc-station`](./08-industrial-qc-station/) | Factory Conveyor QC Sizing Inspector | Arduino Uno | High-speed item detection, dimensional tolerance sorting & yield stats | ✅ Complete |
 | **09** | [`09-air-gesture-desk-assistant`](./09-air-gesture-desk-assistant/) | Touchless Air-Gesture Smart Controller | Arduino Uno | Left/right hand swipes, hover volume adjustment & air-click play/pause | ✅ Complete |
 | **10** | [`10-smart-surveillance-camera`](./10-smart-surveillance-camera/) | Smart Wi-Fi Video Security Sentry & Photo Trap | ESP32-CAM | Autonomous Hotspot, live MJPEG web streaming, high-power spotlight & photo capture | ✅ Complete |
+| **11** | [`11-ai-face-recognition-sentry`](./11-ai-face-recognition-sentry/) | Real-Time AI Face Detection & Biometric Security Sentry | ESP32-CAM | Edge AI face tracking, biometric enrollment (Subject 0), audio siren & spotlight strobe | ✅ Complete |
