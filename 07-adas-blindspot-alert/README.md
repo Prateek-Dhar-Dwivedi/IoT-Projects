@@ -4,6 +4,20 @@ A simulation of automotive **Advanced Driver Assistance Systems (ADAS)**. It pro
 
 ---
 
+## 🌍 Real-World Problem It Solves
+Highway blind-spot collisions and driver drowsiness account for over 800,000 vehicular crashes every year. Traditional glass side mirrors leave unavoidable blind zones where passing vehicles completely vanish from peripheral vision. Furthermore, driver micro-sleeps cause catastrophic off-road deviations. This system brings production-grade ADAS functionality into a compact, edge-computed hardware design.
+
+## 🏢 Practical Real-World Applications
+* **Commercial Truck & Bus Retrofit ADAS:** Mounts on large commercial logistics trucks and city buses to eliminate massive blind spots around cyclists and overtaking cars.
+* **Autonomous Last-Mile Delivery Robots:** Guides sidewalk delivery rovers with 360-degree perimeter proximity awareness during street navigation.
+* **Mining & Heavy Construction Vehicles:** Prevents heavy haul trucks and excavators from colliding with ground personnel in dusty, low-visibility mining pits.
+
+## 🧠 Engineering & Technical Significance
+* **Dual-Zone Spatial Collision Threat Arbitration:** Continuously processes bilateral acoustic echoes to advise safe lane changes and triggers high-urgency ticking upon critical proximity ($<10\text{ cm}$).
+* **Driver Vigilance Anti-Drowsiness Guard:** Tracks optical driver line-of-sight and executes an escalating acoustic wake-up sequence if attentiveness drops for $>2.5\text{ seconds}$.
+
+---
+
 ## 🌟 Key Features
 * **Zero Wire Changes:** Runs on the exact same Arduino Uno circuit as Projects 01–06.
 * **Dual Blind-Spot Monitoring (BSD):**

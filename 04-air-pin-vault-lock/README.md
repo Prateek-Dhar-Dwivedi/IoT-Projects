@@ -4,6 +4,20 @@ A contactless spatial gesture passcode security system. Unlocks only when a user
 
 ---
 
+## 🌍 Real-World Problem It Solves
+Physical keypad locks are vulnerable to thermal camera attacks (reading residual body heat left on plastic buttons), fingerprint smudge analysis, and surface germ transmission in high-traffic environments. This system creates a spatial, contactless 3D Air-PIN lock where no physical surface is ever touched, preventing both biological contamination and physical PIN residue sniffing.
+
+## 🏢 Practical Real-World Applications
+* **High-Security Cleanroom & Bio-Lab Access:** Touchless credential entry in BSL-3/BSL-4 laboratories and sterile semiconductor manufacturing facilities.
+* **Anti-Thermal ATM & Bank Safe Security:** Prevents thermal cameras and residue forensic tools from reconstructing keypad entry sequences.
+* **Sterile ICU Medication Cabinets:** Hands-free passcode authorization for hospital nurse stations and narcotic dispensing safes.
+
+## 🧠 Engineering & Technical Significance
+* **Temporal Spatial Gesture Recognition:** Converts 3D spatial coordinate hovering into credential tokens with hardware debouncing to prevent multi-trigger jitter.
+* **Lockout Penalty State Machine:** Tracks authentication attempts in memory, triggering progressive acoustic warnings and a complete security lockout upon repeated failures.
+
+---
+
 ## 🌟 Key Features
 * **Contactless Air-PIN Keypad:** Uses spatial distance detection across Left and Right zones to input passcode digits touchlessly.
 * **Default Passcode:** `[ LEFT -> RIGHT -> LEFT ]` (or `1 - 2 - 1`).

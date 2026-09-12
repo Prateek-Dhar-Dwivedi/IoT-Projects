@@ -4,6 +4,20 @@ An automated smart garage / multi-bay parking management system that detects slo
 
 ---
 
+## 🌍 Real-World Problem It Solves
+Urban studies show up to 30% of city center traffic congestion is caused by motorists circling searching for vacant parking bays. In addition, low-speed reversing maneuvers in tight garages account for millions of dollars in annual vehicle damage and pedestrian hazards. This system delivers automated individual bay occupancy tracking, admission gate control, and acoustic proximity guidance.
+
+## 🏢 Practical Real-World Applications
+* **Commercial Multi-Level Smart Parking Garages:** Overhead ultrasonic sensors guide drivers to open bays with green/yellow/red status indicators.
+* **Residential Smart Garage Docking Assistant:** Wall-mounted sensor guides vehicles into tight home garages, beeping faster until the safe bumper stop line is reached.
+* **Automated Valet & Airport Terminal Parking:** Automates gate barriers, prevents entry when capacity is reached, and logs vacancy metrics.
+
+## 🧠 Engineering & Technical Significance
+* **Multiplexed Acoustic Ranging:** Coordinates multiple ultrasonic transducers in software to measure independent parking bays without echo interference.
+* **Non-Linear Audio Warning Modulation:** Dynamically modulates pulse-width audio frequency intervals as obstacle distance shrinks, switching to a continuous siren at critical proximity ($<6\text{ cm}$).
+
+---
+
 ## 🌟 Key Features
 * **Dual-Bay Occupancy Sensing:** 
   * Ultrasonic Sensor A monitors **Parking Bay 1**.

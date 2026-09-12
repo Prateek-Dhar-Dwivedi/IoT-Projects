@@ -4,6 +4,20 @@ An assistive technology mobility aid for the visually impaired. Standard canes o
 
 ---
 
+## 🌍 Real-World Problem It Solves
+Over 280 million individuals globally live with visual impairments. Traditional white canes only detect ground-level terrain. They cannot detect elevated hazards such as overhanging truck tailgates, low tree branches, open windows, and street signs, leading to frequent head traumas and injuries. This system provides proactive dual-elevation 3D spatial awareness.
+
+## 🏢 Practical Real-World Applications
+* **Smart Electronic Travel Aids (ETAs):** Can be mounted on smart canes, chest harnesses, or glasses to warn visually impaired users of overhead obstacles.
+* **Autonomous Electric Wheelchair Radar:** Prevents powered wheelchairs from colliding with low curbs or high desk edges.
+* **First-Responder Navigation in Smoke:** Enables firefighters to navigate zero-visibility, smoke-filled corridors without striking overhead beams or falling down stairs.
+
+## 🧠 Engineering & Technical Significance
+* **Dual-Tier Spatial Elevation Mapping:** Dissects the frontal environment into Upper (Head/Chest) and Lower (Foot/Knee) zones, classifying obstacles by height profile.
+* **Psychoacoustic Haptic/Audio Feedback:** Employs differentiated frequency signatures for upper vs. lower threats with duty-cycle pauses to prevent user sensory overload.
+
+---
+
 ## 🌟 Key Features
 * **Live "HEAD" vs "FOOT" Detection:**
   * 👤 **Sensor 1 (Upper):** Detects head-level hazards (overhanging branches, signboards) and prints `[HEAD LEVEL ALERT] Someone at HEAD!`.

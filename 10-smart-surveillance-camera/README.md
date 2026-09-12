@@ -4,6 +4,21 @@ A high-performance, standalone wireless video surveillance sentry and optical in
 
 ---
 
+## 🌍 Real-World Problem It Solves
+Commercial security cameras (Ring, Nest, Arlo) are expensive (\$50–\$200), require monthly subscription fees, and upload sensitive private video to third-party corporate cloud servers. This project delivers a fully private, self-hosted \$5 edge surveillance node that streams live video directly over local Wi-Fi without any cloud reliance or subscriptions.
+
+## 🏢 Practical Real-World Applications
+* **Off-Grid & Wildlife Trail Monitoring:** Operates in remote forests, construction sites, and cars because it generates its own autonomous Wi-Fi hotspot—no router or internet required!
+* **Home & Apartment Intruder Sentry:** Real-time video monitoring with an onboard high-power night spotlight flash for intruder evidence capture.
+* **3D Printer & Factory Machine Monitoring:** Streams low-latency video to monitor long fabrication jobs and catch printing defects remotely.
+
+## 🧠 Engineering & Technical Significance
+* **Embedded DVP Image Sensor Interfacing:** Drives the 2MP OV2640 sensor over an 8-bit Parallel Digital Video Port (DVP) with hardware DMA and JPEG compression.
+* **Asynchronous MJPEG Streaming Engine:** Implements a high-throughput HTTP multipart (`multipart/x-mixed-replace`) streaming server using native `esp_http_server`.
+* **PSRAM Memory Allocation & SoftAP Fallback:** Utilizes external Pseudo-SRAM for high-resolution dual frame-buffering and manages automatic fallback to local hotspot mode.
+
+---
+
 ## 🌟 Key Features
 * **Zero-Setup Autonomous Wi-Fi Hotspot (SoftAP):** The camera generates its own Wi-Fi network (`ESP32-CAM-Sentry`) on boot. You can connect your phone, tablet, or laptop directly to **`http://192.168.4.1`** without needing any home router, Wi-Fi password, or internet connection!
 * **Low-Latency Live Video Stream:** Delivers high-framerate, sub-100ms MJPEG video streaming directly into any modern web browser (iOS Safari, Android Chrome, Windows/Mac Edge & Firefox).

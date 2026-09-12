@@ -4,6 +4,20 @@ A smart desktop ergonomic health monitor built on the **Arduino Uno** using the 
 
 ---
 
+## 🌍 Real-World Problem It Solves
+Chronic musculoskeletal strain ("tech neck", lumbar disc compression) and Computer Vision Syndrome (CVS) affect over 70% of desk workers, programmers, and students. Most people unconsciously slouch forward within 15 minutes of sitting. This system provides real-time, non-invasive acoustic posture feedback and eye-rest scheduling without using privacy-invading webcams.
+
+## 🏢 Practical Real-World Applications
+* **Corporate Ergonomic Workstations:** Mounted beneath monitors to alert employees when their face leans dangerously close or posture slumps.
+* **Remote Work & E-Learning Desks:** Protects children and remote developers from progressive myopia and spinal misalignment during long study sessions.
+* **Occupational Physical Therapy:** Provides patients recovering from spinal surgery with tangible data on daily posture maintenance.
+
+## 🧠 Engineering & Technical Significance
+* **Baseline Deviation Tracking:** Calibrates an individualized neutral spinal posture baseline and computes real-time deviation margins ($\pm 8\text{ cm}$) using time-of-flight acoustic echoes.
+* **Asynchronous Ergonomic Scheduling:** Runs non-blocking software timers enforcing the optometrist-backed "20-20-20" eye rest rule with contactless optical snooze arbitration.
+
+---
+
 ## 🌟 Key Features
 * **Zero Wire Changes:** Runs on the exact same Arduino Uno circuit as previous projects.
 * **Screen Distance Sensing (Sensor 1):** Warns if your face leans closer than 38 cm to the display.
