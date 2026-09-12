@@ -921,7 +921,12 @@ void setup() {
   Serial.println(F("✅ OV2640 Optical Sensor Initialized"));
 
   // Connect to Wi-Fi with SoftAP Fallback
-  Serial.printf("📡 Connecting to 2.4GHz Wi-Fi: %s ...\n", wifi_ssid);
+  Serial.println(F("\n\n=================================================="));
+  Serial.println(F("  STEP 1: CONNECTING TO WI-FI                     "));
+  Serial.println(F("=================================================="));
+  Serial.printf("📡 Target SSID : %s (2.4 GHz)\n", wifi_ssid);
+  Serial.println(F("⏳ Waiting for connection (12 sec)..."));
+  
   WiFi.mode(WIFI_STA);
   WiFi.begin(wifi_ssid, wifi_password);
 
@@ -937,35 +942,55 @@ void setup() {
     delay(500);
     Serial.print(F("."));
   }
-  Serial.println();
+  Serial.println(); // Line break after progress dots
+  delay(1000);      // Clear break before printing result
 
   if (connected) {
-    Serial.println(F("✅ Wi-Fi Connected!"));
+    Serial.println(F("\n=================================================="));
+    Serial.println(F("  ✅ WI-FI CONNECTED SUCCESSFULLY!               "));
+    Serial.println(F("=================================================="));
     Serial.print(F("🌐 IP Address : http://"));
     Serial.println(WiFi.localIP());
+    Serial.println(F("==================================================\n"));
   } else {
-    Serial.println(F("⚠️ Wi-Fi connection timed out. Starting Autonomous SoftAP Hotspot..."));
+    Serial.println(F("\n=================================================="));
+    Serial.println(F("  ⚠️  WI-FI NOT CONNECTED / TIMED OUT             "));
+    Serial.println(F("  🔄 SWITCHING TO AUTONOMOUS SOFTAP HOTSPOT...   "));
+    Serial.println(F("=================================================="));
+    
+    // Cleanly stop station mode to avoid RF conflict and brownouts
+    WiFi.disconnect(true);
+    delay(800); // Clear visual & timing break
+
     WiFi.mode(WIFI_AP);
+    delay(300);
     WiFi.softAP(ap_ssid, ap_password);
-    Serial.print(F("📶 Hotspot SSID: "));
-    Serial.println(ap_ssid);
-    Serial.print(F("🔑 Password    : "));
-    Serial.println(ap_password);
-    Serial.print(F("🌐 Hotspot IP  : http://"));
+    delay(1200); // Give the AP IP stack time to assign 192.168.4.1
+
+    Serial.println(F("\n--------------------------------------------------"));
+    Serial.println(F("  📶 HOTSPOT ACCESS POINT IS LIVE!                "));
+    Serial.println(F("--------------------------------------------------"));
+    Serial.printf("  1. Connect your Phone/PC to SSID : %s\n", ap_ssid);
+    Serial.printf("  2. Enter Wi-Fi Password          : %s\n", ap_password);
+    Serial.print(F("  3. Hotspot Gateway IP            : http://"));
     Serial.println(WiFi.softAPIP());
+    Serial.println(F("--------------------------------------------------\n"));
+    delay(1000); // Clear break before starting server
   }
 
   // Start HTTP Server
   startCameraServer();
+  delay(500);
 
-  Serial.println(F("--------------------------------------------------"));
-  Serial.println(F("🟢 AI FACE SENTRY READY & SCANNING!"));
+  Serial.println(F("=================================================="));
+  Serial.println(F("  🟢 AI FACE SENTRY READY & STREAMING LIVE!       "));
+  Serial.println(F("=================================================="));
   if (connected) {
-    Serial.printf("🌐 Open Browser  : http://%s\n", WiFi.localIP().toString().c_str());
+    Serial.printf("🌐 Open in Browser : http://%s\n", WiFi.localIP().toString().c_str());
   } else {
-    Serial.printf("🌐 Open Browser  : http://%s\n", WiFi.softAPIP().toString().c_str());
+    Serial.printf("🌐 Open in Browser : http://%s\n", WiFi.softAPIP().toString().c_str());
   }
-  Serial.println(F("--------------------------------------------------"));
+  Serial.println(F("==================================================\n"));
 }
 
 void loop() {
