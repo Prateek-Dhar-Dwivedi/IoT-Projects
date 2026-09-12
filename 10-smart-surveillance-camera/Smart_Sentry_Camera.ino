@@ -1,6 +1,8 @@
 #include "esp_camera.h"
 #include <WiFi.h>
 #include "esp_http_server.h"
+#include "soc/soc.h"
+#include "soc/rtc_cntl_reg.h"
 
 /*
  * =====================================================================================
@@ -329,6 +331,7 @@ void startCameraServer() {
 }
 
 void setup() {
+  WRITE_PERI_REG(RTC_CNTL_BROWN_OUT_REG, 0); // Disable hardware brownout detector (prevents boot crash loops)
   Serial.begin(115200);
   delay(1000);
 
@@ -338,19 +341,10 @@ void setup() {
 
   pinMode(FLASH_LED_PIN, OUTPUT);
   pinMode(STATUS_LED_PIN, OUTPUT);
-  digitalWrite(FLASH_LED_PIN, LOW);
+  digitalWrite(FLASH_LED_PIN, LOW);   // Keep flash OFF at boot (prevents current spike)
   digitalWrite(STATUS_LED_PIN, HIGH); // Active LOW -> OFF
 
-  // Flash LED Self-Test (Quick double-pulse)
-  Serial.println(F("[Self-Test] Testing Flash LED..."));
-  digitalWrite(FLASH_LED_PIN, HIGH);
-  delay(60);
-  digitalWrite(FLASH_LED_PIN, LOW);
-  delay(60);
-  digitalWrite(FLASH_LED_PIN, HIGH);
-  delay(60);
-  digitalWrite(FLASH_LED_PIN, LOW);
-  Serial.println(F("[Self-Test] Flash LED functional. Initializing Camera..."));
+  Serial.println(F("⚡ Brownout detector bypassed. Initializing Camera..."));
 
   // Camera Configuration
   camera_config_t config;
@@ -440,6 +434,14 @@ void setup() {
 }
 
 void loop() {
-  // All video streaming and HTTP requests are handled asynchronously by esp_http_server!
-  delay(1000);
+  static unsigned long lastBanner = 0;
+  if (millis() - lastBanner > 3000) {
+    lastBanner = millis();
+    Serial.println(F("--------------------------------------------------"));
+    Serial.println(F("🟢 SENTRY READY & STREAMING LIVE!"));
+    Serial.println(F("📱 Connect Wi-Fi : ESP32-CAM-Sentry (Pass: password123)"));
+    Serial.println(F("🌐 Open Browser  : http://192.168.4.1"));
+    Serial.println(F("--------------------------------------------------\n"));
+  }
+  delay(200);
 }
