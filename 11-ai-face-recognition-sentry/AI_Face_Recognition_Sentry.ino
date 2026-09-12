@@ -10,14 +10,16 @@
  * Board: AI-Thinker ESP32-CAM (with ESP32-CAM-MB micro-USB programmer shield)
  * Hardware Wiring: ZERO EXTRA WIRING NEEDED (Runs 100% on the standalone board!)
  *
- * Key Features:
- *   - Real-time Edge AI Face Detection & Tracking directly over live MJPEG video
- *   - Facial Biometric Enrollment: Enroll authorized user as "Subject 0"
- *   - Autonomous Intruder Alert: Flags unrecognized strangers with flashing alert HUD
- *   - Web Audio API Security Siren: Sounds dynamic warning siren on phone/PC speaker
- *   - Hardware Spotlight (GPIO 4): Automated intrusion strobe or manual spotlight toggle
- *   - On-board Status LED (GPIO 33): Armed heartbeat indicator
- *   - Dual Wi-Fi Mode: Station mode with automatic fallback to SoftAP Hotspot
+ * Architecture:
+ *   - Dual-Server Design:
+ *       * Port 80 : High-speed non-blocking UI, AI frame grabber, Flash LED & controls
+ *       * Port 81 : Dedicated low-latency MJPEG video stream
+ *   - Untainted Same-Origin AI Vision Pipeline:
+ *       * Eliminates CORS / canvas-tainting security restrictions
+ *       * Real-time YCbCr normalized skin & facial geometry detection (12-18 FPS)
+ *       * Biometric Face Enrollment ("Subject 0" Authorized Master vs Stranger)
+ *       * Web Audio API Synthesized Security Warning Siren
+ *       * Automated High-Power Spotlight Strobe & Snapshot Evidence Logging (GPIO 4)
  * =====================================================================================
  */
 
@@ -53,7 +55,8 @@ const char* ap_password = "password123";
 #define STATUS_LED_PIN    33   // Onboard Red Indicator LED (Active LOW)
 
 // HTTP Server Handles
-httpd_handle_t camera_httpd = NULL;
+httpd_handle_t camera_httpd = NULL; // Port 80 (UI, Controls, Frame Grabber)
+httpd_handle_t stream_httpd = NULL; // Port 81 (Dedicated MJPEG Stream)
 bool flashState = false;
 
 // Web UI Dashboard HTML & Edge AI JavaScript (Stored in Flash PROGMEM)
@@ -78,14 +81,14 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
     }
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
     body { background: var(--bg); color: var(--text-main); text-align: center; padding: 12px; }
-    .container { max-width: 800px; margin: 0 auto; }
-    header { margin-bottom: 14px; }
+    .container { max-width: 780px; margin: 0 auto; }
+    header { margin-bottom: 12px; }
     h1 { font-size: 1.5rem; color: var(--accent-cyan); display: flex; align-items: center; justify-content: center; gap: 8px; letter-spacing: 0.5px; }
     .status-badge-bar { display: flex; justify-content: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
     .badge { background: var(--card); border: 1px solid var(--card-border); padding: 4px 12px; border-radius: 9999px; font-size: 0.78rem; color: var(--text-dim); display: inline-flex; align-items: center; gap: 5px; }
     .badge.active { border-color: var(--accent-green); color: var(--accent-green); }
-    .badge.alert { border-color: var(--accent-red); color: var(--accent-red); animation: pulse 1s infinite alternate; }
-    @keyframes pulse { from { opacity: 0.7; } to { opacity: 1; filter: drop-shadow(0 0 6px var(--accent-red)); } }
+    .badge.alert { border-color: var(--accent-red); color: var(--accent-red); animation: pulse 0.8s infinite alternate; }
+    @keyframes pulse { from { opacity: 0.6; } to { opacity: 1; filter: drop-shadow(0 0 8px var(--accent-red)); } }
 
     /* Video & Canvas HUD Wrapper */
     .stream-wrapper {
@@ -95,10 +98,11 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
       border-radius: 14px;
       overflow: hidden;
       box-shadow: 0 12px 30px rgba(0,0,0,0.7);
-      margin: 12px 0;
-      display: inline-block;
+      margin: 10px auto;
+      display: block;
       width: 100%;
       max-width: 640px;
+      min-height: 240px;
     }
     #stream { width: 100%; height: auto; display: block; }
     #ai-canvas {
@@ -114,10 +118,9 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
     /* System Stats Strip */
     .hud-strip {
       background: rgba(19, 27, 46, 0.85);
-      backdrop-filter: blur(8px);
       border: 1px solid var(--card-border);
       border-radius: 10px;
-      padding: 8px 14px;
+      padding: 8px 12px;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 6px;
@@ -133,10 +136,10 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
       background: var(--card);
       border: 1px solid var(--card-border);
       border-radius: 12px;
-      padding: 14px;
+      padding: 12px 14px;
       margin-bottom: 12px;
     }
-    .panel-title { font-size: 0.9rem; color: var(--accent-cyan); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.8px; text-align: left; display: flex; align-items: center; gap: 6px; }
+    .panel-title { font-size: 0.88rem; color: var(--accent-cyan); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.8px; text-align: left; display: flex; align-items: center; gap: 6px; }
     .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     button {
       background: #1e293b;
@@ -162,7 +165,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
     .btn-spotlight { background: #78350f; border-color: #d97706; }
     .btn-spotlight.on { background: #d97706; color: #000; box-shadow: 0 0 15px #d97706; }
     .btn-snap { background: #1e40af; border-color: #3b82f6; }
-    .btn-reset { background: #334155; border-color: #475569; font-size: 0.82rem; }
+    .btn-reset { background: #334155; border-color: #475569; font-size: 0.85rem; }
 
     /* Resolution & Tuning Row */
     .tuning-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
@@ -171,12 +174,12 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
     .res-btn.active { background: var(--accent-cyan); color: #000; font-weight: bold; border-color: var(--accent-cyan); }
 
     /* Incident Log */
-    #log-panel { max-height: 220px; overflow-y: auto; text-align: left; font-size: 0.8rem; font-family: monospace; }
+    #log-panel { max-height: 180px; overflow-y: auto; text-align: left; font-size: 0.8rem; font-family: monospace; }
     .log-item { padding: 6px 10px; border-bottom: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; }
     .log-item.alert { color: #f87171; background: rgba(239, 68, 68, 0.1); }
     .log-item.auth { color: #34d399; background: rgba(16, 185, 129, 0.1); }
 
-    footer { margin-top: 20px; font-size: 0.75rem; color: #64748b; }
+    footer { margin-top: 18px; font-size: 0.75rem; color: #64748b; }
   </style>
 </head>
 <body>
@@ -192,7 +195,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
 
     <!-- Video Canvas HUD Display -->
     <div class="stream-wrapper">
-      <img id="stream" src="/stream" alt="AI Video Stream" crossorigin="anonymous">
+      <img id="stream" src="" alt="Live Video Feed">
       <canvas id="ai-canvas"></canvas>
       <canvas id="work-canvas"></canvas>
     </div>
@@ -200,7 +203,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
     <!-- Live Telemetry HUD Strip -->
     <div class="hud-strip">
       <div class="hud-item">
-        <span class="hud-label">AI Track FPS</span>
+        <span class="hud-label">AI Pipeline FPS</span>
         <span id="hud-fps" class="hud-val" style="color:var(--accent-cyan)">0</span>
       </div>
       <div class="hud-item">
@@ -219,7 +222,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
 
     <!-- Biometric ID Controls -->
     <div class="panel">
-      <div class="panel-title">👤 Biometric Enrollment & Authorization</div>
+      <div class="panel-title">👤 Biometric Enrollment & Master Profile</div>
       <div class="btn-grid">
         <button class="btn-enroll" onclick="enrollCurrentFace()">
           📸 <span>Enroll Face (Subject 0)</span>
@@ -230,7 +233,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
       </div>
     </div>
 
-    <!-- Active Defense & Optics -->
+    <!-- Active Defense & Controls -->
     <div class="panel">
       <div class="panel-title">🚨 Active Defense & Controls</div>
       <div class="btn-grid">
@@ -262,7 +265,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
     <div class="panel">
       <div class="panel-title">📋 Live Security Incident Log</div>
       <div id="log-panel">
-        <div class="log-item">[SYSTEM] AI Edge Sentry Booted. Video stream synchronized.</div>
+        <div class="log-item">[SYSTEM] AI Edge Sentry Synchronized. Dual-port stream online.</div>
       </div>
     </div>
 
@@ -280,7 +283,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
   </div>
 
   <script>
-    // System State Variables
+    // State Variables
     let enrolledVector = null;
     let sirenEnabled = true;
     let autoFlashEnabled = true;
@@ -291,6 +294,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
     let frameCount = 0;
     let fps = 0;
     let lastFpsTime = Date.now();
+    let currentFaceResult = null;
 
     const streamImg = document.getElementById('stream');
     const aiCanvas = document.getElementById('ai-canvas');
@@ -298,41 +302,46 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
     const workCanvas = document.getElementById('work-canvas');
     const workCtx = workCanvas.getContext('2d', { willReadFrequently: true });
 
-    // Web Audio Siren Generator
+    // Connect to dedicated Port 81 for MJPEG stream
+    const port81Stream = window.location.protocol + '//' + window.location.hostname + ':81/stream';
+    streamImg.src = port81Stream;
+
+    // Web Audio Synthesizer (Auto-resumes on first user touch/click)
     function initAudio() {
       if (!audioCtx) {
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
     }
-    document.addEventListener('click', initAudio, { once: true });
+    ['click', 'touchstart', 'mousedown'].forEach(ev => document.addEventListener(ev, initAudio, { once: true }));
 
     function playSirenAlert() {
       if (!sirenEnabled) return;
       try {
         initAudio();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
         gain.connect(audioCtx.destination);
         const now = audioCtx.currentTime;
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(800, now);
-        osc.frequency.linearRampToValueAtTime(1400, now + 0.15);
-        osc.frequency.linearRampToValueAtTime(800, now + 0.3);
-        gain.gain.setValueAtTime(0.3, now);
+        osc.frequency.setValueAtTime(750, now);
+        osc.frequency.linearRampToValueAtTime(1350, now + 0.15);
+        osc.frequency.linearRampToValueAtTime(750, now + 0.3);
+        gain.gain.setValueAtTime(0.35, now);
         gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
         osc.start(now);
         osc.stop(now + 0.35);
       } catch (e) {
-        console.warn('Audio warning:', e);
+        console.warn('Audio alert error:', e);
       }
     }
 
     function playSuccessChime() {
       try {
         initAudio();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.connect(gain);
@@ -342,21 +351,20 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
         osc.frequency.setValueAtTime(523.25, now);       // C5
         osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
         osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
         osc.start(now);
-        osc.stop(now + 0.4);
+        osc.stop(now + 0.45);
       } catch (e) {}
     }
 
-    // High-Performance Face Detection & Biometric Extraction
-    // Uses skin-chroma probability analysis combined with facial geometry & gradient clustering
+    // High-Performance Normalized YCbCr Skin & Facial Geometry Detector
     function detectFaceAndFeatures(imgData, w, h) {
       const data = imgData.data;
       let totalSkinPixels = 0;
       let minX = w, maxX = 0, minY = h, maxY = 0;
       let sumX = 0, sumY = 0;
-      const step = 4; // Subsampling for extreme speed (12-20 FPS)
+      const step = 4; // High-speed spatial subsampling
 
       for (let y = 0; y < h; y += step) {
         for (let x = 0; x < w; x += step) {
@@ -365,39 +373,38 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
           const g = data[idx + 1];
           const b = data[idx + 2];
 
-          // Normalized Chrominance and Skin-tone thresholding (Kovac/Chai model)
-          const sum = r + g + b;
-          if (sum > 70 && sum < 720) {
-            const rn = r / sum;
-            const gn = g / sum;
-            if (r > g && g > b && (r - g) >= 12 && rn > 0.36 && rn < 0.60 && gn > 0.25 && gn < 0.38) {
-              totalSkinPixels++;
-              sumX += x;
-              sumY += y;
-              if (x < minX) minX = x;
-              if (x > maxX) maxX = x;
-              if (y < minY) minY = y;
-              if (y > maxY) maxY = y;
-            }
+          // YCbCr transformation (invariant to ethnicity & skin shade)
+          const yVal  =  0.299 * r + 0.587 * g + 0.114 * b;
+          const cbVal = 128 - 0.168736 * r - 0.331264 * g + 0.5 * b;
+          const crVal = 128 + 0.5 * r - 0.418688 * g - 0.081312 * b;
+
+          if (yVal > 35 && yVal < 240 && cbVal >= 75 && cbVal <= 130 && crVal >= 130 && crVal <= 178) {
+            totalSkinPixels++;
+            sumX += x;
+            sumY += y;
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
           }
         }
       }
 
-      // If skin cluster is significant and matches facial aspect ratio
-      const sampledPixels = (w / step) * (h / step);
-      const skinRatio = totalSkinPixels / sampledPixels;
+      const sampledTotal = (w / step) * (h / step);
+      const skinRatio = totalSkinPixels / sampledTotal;
 
-      if (totalSkinPixels > 80 && skinRatio > 0.04 && skinRatio < 0.70) {
+      // Facial cluster verification
+      if (totalSkinPixels >= 25 && skinRatio >= 0.03 && skinRatio <= 0.85) {
         const boxW = maxX - minX;
         const boxH = maxY - minY;
         const aspect = boxH / (boxW || 1);
 
-        // Human faces typically have aspect ratio 1.05 to 1.85
-        if (aspect >= 0.85 && aspect <= 2.2 && boxW >= w * 0.15 && boxH >= h * 0.18) {
+        // Aspect ratio filter for human facial structure
+        if (aspect >= 0.8 && aspect <= 2.4 && boxW >= w * 0.12 && boxH >= h * 0.14) {
           const centerX = sumX / totalSkinPixels;
           const centerY = sumY / totalSkinPixels;
 
-          // Extract a 16-point spatial luminance & chroma signature vector
+          // Extract 16-point normalized spatial luminance vector
           const vector = [];
           const numSamples = 4;
           const stepX = Math.max(1, Math.floor(boxW / numSamples));
@@ -421,14 +428,14 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
             cx: centerX,
             cy: centerY,
             vector: vector,
-            confidence: Math.min(99, Math.round(75 + skinRatio * 35))
+            confidence: Math.min(99, Math.round(75 + skinRatio * 30))
           };
         }
       }
       return null;
     }
 
-    // Cosine similarity for Biometric Matching
+    // Cosine similarity for Biometric Vector Matching
     function compareVectors(v1, v2) {
       if (!v1 || !v2 || v1.length !== v2.length) return 0;
       let dot = 0, mag1 = 0, mag2 = 0;
@@ -442,7 +449,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
       return Math.max(0, Math.min(100, Math.round(sim * 100)));
     }
 
-    // Draw Sci-Fi Cyber Reticle Bounding Box
+    // Draw Sci-Fi Cyber Reticle HUD
     function drawReticle(ctx, x, y, w, h, isAuthorized, label, conf) {
       const color = isAuthorized ? '#10b981' : '#ef4444';
       ctx.strokeStyle = color;
@@ -480,7 +487,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
       ctx.lineTo(x + w, y + h - cornerLen);
       ctx.stroke();
 
-      // Center Targeting Reticle
+      // Center Crosshair
       const cx = x + w / 2;
       const cy = y + h / 2;
       ctx.beginPath();
@@ -501,93 +508,97 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
       ctx.shadowBlur = 0;
     }
 
-    // Main Vision Loop
-    let currentFaceResult = null;
-
-    function processVisionFrame() {
-      if (!streamImg.complete || streamImg.naturalWidth === 0) {
-        requestAnimationFrame(processVisionFrame);
-        return;
-      }
-
-      // Synchronize canvas dimensions to stream
-      if (aiCanvas.width !== streamImg.clientWidth || aiCanvas.height !== streamImg.clientHeight) {
-        aiCanvas.width = streamImg.clientWidth || 320;
-        aiCanvas.height = streamImg.clientHeight || 240;
-      }
-
+    // High-Speed Untainted AI Frame Fetch Pipeline (Port 80)
+    async function runVisionPipeline() {
       const scanW = 160;
       const scanH = 120;
       workCanvas.width = scanW;
       workCanvas.height = scanH;
 
-      workCtx.drawImage(streamImg, 0, 0, scanW, scanH);
-      const imgData = workCtx.getImageData(0, 0, scanW, scanH);
-      const result = detectFaceAndFeatures(imgData, scanW, scanH);
-      currentFaceResult = result;
+      while (true) {
+        try {
+          const response = await fetch('/capture?t=' + Date.now());
+          if (response.ok) {
+            const blob = await response.blob();
+            const imgBitmap = await createImageBitmap(blob);
 
-      // Clear overlay HUD
-      aiCtx.clearRect(0, 0, aiCanvas.width, aiCanvas.height);
+            // Sync overlay canvas dimensions
+            if (aiCanvas.width !== streamImg.clientWidth || aiCanvas.height !== streamImg.clientHeight) {
+              aiCanvas.width = streamImg.clientWidth || 320;
+              aiCanvas.height = streamImg.clientHeight || 240;
+            }
 
-      const targetBadge = document.getElementById('target-badge');
-      const hudMatch = document.getElementById('hud-match');
-      const hudArea = document.getElementById('hud-area');
+            // Draw to work canvas (100% same-origin, zero security errors)
+            workCtx.drawImage(imgBitmap, 0, 0, scanW, scanH);
+            const imgData = workCtx.getImageData(0, 0, scanW, scanH);
+            const result = detectFaceAndFeatures(imgData, scanW, scanH);
+            currentFaceResult = result;
 
-      if (result) {
-        // Map scan coordinates to display dimensions
-        const scaleX = aiCanvas.width / scanW;
-        const scaleY = aiCanvas.height / scanH;
-        const dispX = result.x * scaleX;
-        const dispY = result.y * scaleY;
-        const dispW = result.w * scaleX;
-        const dispH = result.h * scaleY;
+            // Clear previous HUD
+            aiCtx.clearRect(0, 0, aiCanvas.width, aiCanvas.height);
 
-        let isAuth = false;
-        let matchScore = 0;
-        let label = "UNKNOWN INTRUDER";
+            const targetBadge = document.getElementById('target-badge');
+            const hudMatch = document.getElementById('hud-match');
+            const hudArea = document.getElementById('hud-area');
 
-        if (enrolledVector) {
-          matchScore = compareVectors(result.vector, enrolledVector);
-          hudMatch.innerText = matchScore + ' %';
-          if (matchScore >= 78) {
-            isAuth = true;
-            label = "AUTHORIZED: SUBJ-0";
-            targetBadge.className = "badge active";
-            targetBadge.innerText = "✅ Authorized Subject";
-          } else {
-            isAuth = false;
-            label = "ALERT: INTRUDER";
-            targetBadge.className = "badge alert";
-            targetBadge.innerText = "🚨 Intruder Detected!";
-            handleIntruderEvent(matchScore);
+            if (result) {
+              const scaleX = aiCanvas.width / scanW;
+              const scaleY = aiCanvas.height / scanH;
+              const dispX = result.x * scaleX;
+              const dispY = result.y * scaleY;
+              const dispW = result.w * scaleX;
+              const dispH = result.h * scaleY;
+
+              let isAuth = false;
+              let matchScore = 0;
+              let label = "UNKNOWN INTRUDER";
+
+              if (enrolledVector) {
+                matchScore = compareVectors(result.vector, enrolledVector);
+                hudMatch.innerText = matchScore + ' %';
+                if (matchScore >= 78) {
+                  isAuth = true;
+                  label = "AUTHORIZED: SUBJ-0";
+                  targetBadge.className = "badge active";
+                  targetBadge.innerText = "✅ Authorized Subject";
+                } else {
+                  isAuth = false;
+                  label = "ALERT: INTRUDER";
+                  targetBadge.className = "badge alert";
+                  targetBadge.innerText = "🚨 Intruder Detected!";
+                  handleIntruderEvent(matchScore);
+                }
+              } else {
+                hudMatch.innerText = "--";
+                label = "FACE DETECTED";
+                targetBadge.className = "badge active";
+                targetBadge.innerText = "👁️ Face In View";
+              }
+
+              hudArea.innerText = `${Math.round(dispW)}x${Math.round(dispH)}`;
+              drawReticle(aiCtx, dispX, dispY, dispW, dispH, isAuth || !enrolledVector, label, result.confidence);
+            } else {
+              targetBadge.className = "badge";
+              targetBadge.innerText = "👁️ Scanning for Faces";
+              hudMatch.innerText = "-- %";
+              hudArea.innerText = "None";
+            }
+
+            // Update FPS Counter
+            frameCount++;
+            const now = Date.now();
+            if (now - lastFpsTime >= 1000) {
+              fps = frameCount;
+              frameCount = 0;
+              lastFpsTime = now;
+              document.getElementById('hud-fps').innerText = fps;
+            }
           }
-        } else {
-          hudMatch.innerText = "--";
-          label = "FACE DETECTED";
-          targetBadge.className = "badge active";
-          targetBadge.innerText = "👁️ Face In View";
+        } catch (err) {
+          // Gracefully continue on transient network drop
         }
-
-        hudArea.innerText = `${Math.round(dispW)}x${Math.round(dispH)}`;
-        drawReticle(aiCtx, dispX, dispY, dispW, dispH, isAuth || !enrolledVector, label, result.confidence);
-      } else {
-        targetBadge.className = "badge";
-        targetBadge.innerText = "👁️ Scanning for Faces";
-        hudMatch.innerText = "-- %";
-        hudArea.innerText = "None";
+        await new Promise(r => setTimeout(r, 65)); // ~15 FPS pipeline
       }
-
-      // Update FPS Telemetry
-      frameCount++;
-      const now = Date.now();
-      if (now - lastFpsTime >= 1000) {
-        fps = frameCount;
-        frameCount = 0;
-        lastFpsTime = now;
-        document.getElementById('hud-fps').innerText = fps;
-      }
-
-      setTimeout(processVisionFrame, 75); // ~13 FPS processing rate
     }
 
     function handleIntruderEvent(matchScore) {
@@ -624,6 +635,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
 
     // Biometric Enrollment Handlers
     function enrollCurrentFace() {
+      initAudio();
       if (!currentFaceResult) {
         alert("⚠️ No face detected in frame! Position your face in front of the camera and try again.");
         return;
@@ -645,6 +657,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
 
     // Hardware Actuator Controls
     function toggleSiren() {
+      initAudio();
       sirenEnabled = !sirenEnabled;
       const btn = document.getElementById('siren-btn');
       if (sirenEnabled) {
@@ -664,7 +677,7 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
 
     function triggerHardwareFlashPulse() {
       fetch('/flash?state=1')
-        .then(() => setTimeout(() => fetch('/flash?state=0'), 1200))
+        .then(() => setTimeout(() => fetch('/flash?state=0'), 1000))
         .catch(console.warn);
     }
 
@@ -680,7 +693,8 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
             btn.classList.remove('on');
             btn.querySelector('span').innerText = 'Spotlight: OFF';
           }
-        });
+        })
+        .catch(console.warn);
     }
 
     function takeManualSnapshot() {
@@ -701,13 +715,8 @@ static const char PROGMEM INDEX_HTML[] = R"rawliteral(
       fetch('/res?size=' + size);
     }
 
-    // Start video & AI processing loop on stream ready
-    streamImg.onload = () => {
-      setTimeout(processVisionFrame, 500);
-    };
-    if (streamImg.complete) {
-      setTimeout(processVisionFrame, 500);
-    }
+    // Launch AI Vision Pipeline immediately
+    setTimeout(runVisionPipeline, 500);
   </script>
 </body>
 </html>
@@ -718,7 +727,7 @@ static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" 
 static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
 static const char* _STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
 
-// MJPEG Streaming Handler
+// Dedicated MJPEG Streaming Handler (Port 81)
 static esp_err_t stream_handler(httpd_req_t *req) {
   camera_fb_t * fb = NULL;
   esp_err_t res = ESP_OK;
@@ -734,7 +743,6 @@ static esp_err_t stream_handler(httpd_req_t *req) {
   while (true) {
     fb = esp_camera_fb_get();
     if (!fb) {
-      Serial.println(F("Camera capture failed"));
       res = ESP_FAIL;
     } else {
       if (fb->format != PIXFORMAT_JPEG) {
@@ -742,7 +750,6 @@ static esp_err_t stream_handler(httpd_req_t *req) {
         esp_camera_fb_return(fb);
         fb = NULL;
         if (!jpeg_converted) {
-          Serial.println(F("JPEG compression failed"));
           res = ESP_FAIL;
         }
       } else {
@@ -771,35 +778,32 @@ static esp_err_t stream_handler(httpd_req_t *req) {
   return res;
 }
 
-// Web UI Index Handler
+// Web UI Index Handler (Port 80)
 static esp_err_t index_handler(httpd_req_t *req) {
   httpd_resp_set_type(req, "text/html");
   return httpd_resp_send(req, INDEX_HTML, strlen(INDEX_HTML));
 }
 
-// Single Photo Capture Handler
+// Single Photo / AI Frame Capture Handler (Port 80)
 static esp_err_t capture_handler(httpd_req_t *req) {
   camera_fb_t * fb = NULL;
   esp_err_t res = ESP_OK;
 
-  digitalWrite(STATUS_LED_PIN, LOW); // LED ON
   fb = esp_camera_fb_get();
-  digitalWrite(STATUS_LED_PIN, HIGH); // LED OFF
-
   if (!fb) {
-    Serial.println(F("Snapshot capture failed"));
     httpd_resp_send_500(req);
     return ESP_FAIL;
   }
 
   httpd_resp_set_type(req, "image/jpeg");
   httpd_resp_set_hdr(req, "Content-Disposition", "inline; filename=capture.jpg");
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
   res = httpd_resp_send(req, (const char *)fb->buf, fb->len);
   esp_camera_fb_return(fb);
   return res;
 }
 
-// Flashlight Handler
+// Flashlight Handler (Port 80)
 static esp_err_t flash_handler(httpd_req_t *req) {
   char buf[32];
   if (httpd_req_get_url_query_str(req, buf, sizeof(buf)) == ESP_OK) {
@@ -814,11 +818,12 @@ static esp_err_t flash_handler(httpd_req_t *req) {
       }
     }
   }
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
   httpd_resp_set_type(req, "text/plain");
   return httpd_resp_send(req, flashState ? "ON" : "OFF", 2);
 }
 
-// Resolution Switching Handler
+// Resolution Switching Handler (Port 80)
 static esp_err_t res_handler(httpd_req_t *req) {
   char buf[32];
   if (httpd_req_get_url_query_str(req, buf, sizeof(buf)) == ESP_OK) {
@@ -832,11 +837,12 @@ static esp_err_t res_handler(httpd_req_t *req) {
       }
     }
   }
+  httpd_resp_set_hdr(req, "Access-Control-Allow-Origin", "*");
   httpd_resp_set_type(req, "text/plain");
   return httpd_resp_send(req, "OK", 2);
 }
 
-// Start HTTP Server
+// Start HTTP Servers (Dual-Port Architecture)
 void startCameraServer() {
   httpd_config_t config = HTTPD_DEFAULT_CONFIG();
   config.max_uri_handlers = 8;
@@ -847,13 +853,21 @@ void startCameraServer() {
   httpd_uri_t res_uri     = { .uri = "/res",      .method = HTTP_GET, .handler = res_handler,     .user_ctx = NULL };
   httpd_uri_t stream_uri  = { .uri = "/stream",   .method = HTTP_GET, .handler = stream_handler,  .user_ctx = NULL };
 
+  // 1. Port 80: High-Speed UI, Frame Capture & Controls
   if (httpd_start(&camera_httpd, &config) == ESP_OK) {
     httpd_register_uri_handler(camera_httpd, &index_uri);
     httpd_register_uri_handler(camera_httpd, &flash_uri);
     httpd_register_uri_handler(camera_httpd, &capture_uri);
     httpd_register_uri_handler(camera_httpd, &res_uri);
-    httpd_register_uri_handler(camera_httpd, &stream_uri);
-    Serial.println(F("✅ AI Video & Sentry Server started successfully"));
+    Serial.println(F("✅ Main Control Server started on Port 80"));
+  }
+
+  // 2. Port 81: Dedicated Streaming Server
+  config.server_port += 1;
+  config.ctrl_port += 1;
+  if (httpd_start(&stream_httpd, &config) == ESP_OK) {
+    httpd_register_uri_handler(stream_httpd, &stream_uri);
+    Serial.println(F("✅ Dedicated Stream Server started on Port 81"));
   }
 }
 
@@ -926,14 +940,13 @@ void setup() {
   Serial.println(F("=================================================="));
   Serial.printf("📡 Target SSID : %s (2.4 GHz)\n", wifi_ssid);
   Serial.println(F("⏳ Waiting for connection (12 sec)..."));
-  
+
   WiFi.mode(WIFI_STA);
   WiFi.begin(wifi_ssid, wifi_password);
 
   unsigned long startAttemptTime = millis();
   bool connected = false;
 
-  // Wait up to 12 seconds for Wi-Fi connection
   while (millis() - startAttemptTime < 12000) {
     if (WiFi.status() == WL_CONNECTED) {
       connected = true;
@@ -942,8 +955,8 @@ void setup() {
     delay(500);
     Serial.print(F("."));
   }
-  Serial.println(); // Line break after progress dots
-  delay(1000);      // Clear break before printing result
+  Serial.println();
+  delay(1000);
 
   if (connected) {
     Serial.println(F("\n=================================================="));
@@ -957,15 +970,14 @@ void setup() {
     Serial.println(F("  ⚠️  WI-FI NOT CONNECTED / TIMED OUT             "));
     Serial.println(F("  🔄 SWITCHING TO AUTONOMOUS SOFTAP HOTSPOT...   "));
     Serial.println(F("=================================================="));
-    
-    // Cleanly stop station mode to avoid RF conflict and brownouts
+
     WiFi.disconnect(true);
-    delay(800); // Clear visual & timing break
+    delay(800);
 
     WiFi.mode(WIFI_AP);
     delay(300);
     WiFi.softAP(ap_ssid, ap_password);
-    delay(1200); // Give the AP IP stack time to assign 192.168.4.1
+    delay(1200);
 
     Serial.println(F("\n--------------------------------------------------"));
     Serial.println(F("  📶 HOTSPOT ACCESS POINT IS LIVE!                "));
@@ -975,10 +987,10 @@ void setup() {
     Serial.print(F("  3. Hotspot Gateway IP            : http://"));
     Serial.println(WiFi.softAPIP());
     Serial.println(F("--------------------------------------------------\n"));
-    delay(1000); // Clear break before starting server
+    delay(1000);
   }
 
-  // Start HTTP Server
+  // Start HTTP Servers
   startCameraServer();
   delay(500);
 
