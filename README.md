@@ -1,4 +1,4 @@
-# IoT Projects Portfolio 🚀
+# IoT Projects Portfolio 
 
 A complete, production-ready portfolio of **11 embedded systems and IoT projects** built using **Arduino Uno R3**, **ESP32-CAM (OV2640)**, **Dual Ultrasonic sensors (HC-SR04)**, **IR proximity sensor**, **piezo buzzer**, and **LED indicators**.
 
